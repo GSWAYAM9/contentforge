@@ -207,6 +207,55 @@ export async function rejectStep(approvalId: number, feedback: string) {
   }
 }
 
+// Update project settings
+export async function updateProjectSettings(
+  projectId: string,
+  settings: {
+    name: string
+    description: string
+    topic: string
+    tone: string
+    wordCount: number
+    targetAudience: string
+    keywords: string
+    modelPreference: string
+    temperature: number
+    maxTokens: number
+  }
+) {
+  try {
+    const session = await getSession()
+    if (!session?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const result = await db
+      .update(projects)
+      .set({
+        name: settings.name,
+        description: settings.description,
+        topic: settings.topic,
+        metadata: JSON.stringify({
+          tone: settings.tone,
+          wordCount: settings.wordCount,
+          targetAudience: settings.targetAudience,
+          keywords: settings.keywords,
+          modelPreference: settings.modelPreference,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+        }),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(projects.id, parseInt(projectId)), eq(projects.userId, session.id)))
+      .returning()
+
+    return { success: true, data: result[0], message: 'Settings saved successfully' }
+  } catch (error) {
+    console.error('Error updating project settings:', error)
+    return { success: false, error: 'Failed to save settings' }
+  }
+}
+
 // Delete project
 export async function deleteProject(projectId: string) {
   try {

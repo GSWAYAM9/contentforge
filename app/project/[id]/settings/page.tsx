@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Save, AlertCircle, Settings, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { AnimatedButton } from '@/components/ui/animated-button'
 import { PremiumInput } from '@/components/ui/premium-input'
 import { GlassCard } from '@/components/shared/cards/glass-card'
+import { updateProjectSettings, deleteProject } from '@/app/actions/project-operations'
 
 interface ProjectSettings {
   name: string
@@ -21,7 +23,14 @@ interface ProjectSettings {
   maxTokens: number
 }
 
-export default function ProjectSettingsPage() {
+interface PageParams {
+  params: Promise<{ id: string }>
+}
+
+export default function ProjectSettingsPage({ params }: PageParams) {
+  const router = useRouter()
+  const [projectId, setProjectId] = useState<string>('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [settings, setSettings] = useState<ProjectSettings>({
     name: 'AI Writing Guide - Q3 2024',
     description: 'Comprehensive guide on using AI for content creation',
@@ -36,16 +45,51 @@ export default function ProjectSettingsPage() {
   })
 
   const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+
+  // Get project ID from params
+  React.useEffect(() => {
+    params.then(p => setProjectId(p.id))
+  }, [params])
 
   const handleChange = (field: keyof ProjectSettings, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSave = async () => {
+    if (!projectId) return
     setIsSaving(true)
-    // TODO: Implement API call to save settings
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
+    setSaveMessage('')
+    try {
+      const result = await updateProjectSettings(projectId, settings)
+      if (result.success) {
+        setSaveMessage('Settings saved successfully!')
+        setTimeout(() => setSaveMessage(''), 3000)
+      } else {
+        setSaveMessage('Error: ' + (result.error || 'Failed to save'))
+      }
+    } catch (error) {
+      setSaveMessage('Error saving settings')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!projectId || !showDeleteConfirm) return
+    setIsSaving(true)
+    try {
+      const result = await deleteProject(projectId)
+      if (result.success) {
+        router.push('/dashboard/projects')
+      } else {
+        setSaveMessage('Error deleting project')
+      }
+    } catch (error) {
+      setSaveMessage('Error deleting project')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -54,7 +98,7 @@ export default function ProjectSettingsPage() {
       <div className="border-b border-white/10 p-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={`/project/1`}>
+            <Link href={projectId ? `/project/${projectId}` : '/dashboard/projects'}>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -71,16 +115,27 @@ export default function ProjectSettingsPage() {
               <p className="text-muted-foreground mt-1">Configure your project preferences and AI model settings</p>
             </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium transition"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Settings'}
-          </motion.button>
+          <div className="flex items-center gap-4">
+            {saveMessage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`text-sm font-medium ${saveMessage.includes('Error') ? 'text-red-400' : 'text-green-400'}`}
+              >
+                {saveMessage}
+              </motion.div>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg font-medium transition"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save Settings'}
+            </motion.button>
+          </div>
         </div>
       </div>
 
@@ -250,19 +305,48 @@ export default function ProjectSettingsPage() {
             Danger Zone
           </h2>
           <GlassCard className="p-6 border-red-500/30 bg-red-500/5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <div>
-                  <h3 className="font-semibold text-white">Delete Project</h3>
-                  <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+            {!showDeleteConfirm ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                  <div>
+                    <h3 className="font-semibold text-white">Delete Project</h3>
+                    <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg font-medium transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg font-medium transition">
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
-            </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-4"
+              >
+                <p className="text-white font-semibold">Are you sure you want to delete this project?</p>
+                <p className="text-red-300 text-sm">This will permanently delete the project and all its data. This cannot be undone.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isSaving}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                  >
+                    {isSaving ? 'Deleting...' : 'Yes, Delete Project'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </GlassCard>
         </motion.div>
       </div>

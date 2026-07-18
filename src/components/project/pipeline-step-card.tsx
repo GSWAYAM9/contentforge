@@ -1,9 +1,11 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Zap, RotateCw, Eye, Clock, Play, CheckCircle2, XCircle } from 'lucide-react'
+import { ChevronDown, Zap, RotateCw, Eye, Clock, Play, CheckCircle2, XCircle, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { runPipelineStep, requestApproval } from '@/app/actions/project-operations'
+import { generateContentWithClaude } from '@/app/actions/ai-generation'
+import { generateImageWithOpenAI } from '@/app/actions/image-generation'
 
 interface Stage {
   id: number
@@ -70,6 +72,34 @@ export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onSte
       onStepUpdated?.()
     } catch (error) {
       console.error('Error requesting approval:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGenerateContent = async () => {
+    setIsLoading(true)
+    try {
+      const result = await generateContentWithClaude(`Generate content for ${stage.name}`, 'Technology')
+      if (result.success) {
+        onStepUpdated?.()
+      }
+    } catch (error) {
+      console.error('Error generating content:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGenerateImage = async () => {
+    setIsLoading(true)
+    try {
+      const result = await generateImageWithOpenAI(`Professional image for ${stage.name}`)
+      if (result.success) {
+        onStepUpdated?.()
+      }
+    } catch (error) {
+      console.error('Error generating image:', error)
     } finally {
       setIsLoading(false)
     }
@@ -260,7 +290,44 @@ export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onSte
                 </div>
               )}
 
-              {/* Actions */}
+              {/* AI Generation Actions */}
+              <div className="pt-2 border-t border-white/10">
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">AI Generation</h4>
+                <div className="flex gap-2">
+                  {['Content Research', 'Outline', 'Keyword Research'].includes(stage.name) && (
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateContent()
+                      }}
+                      disabled={isLoading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 hover:bg-purple-500/30 disabled:opacity-50 text-purple-300 rounded font-medium text-sm transition"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate Content
+                    </motion.button>
+                  )}
+                  {stage.name === 'Image Generation' && (
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateImage()
+                      }}
+                      disabled={isLoading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 text-blue-300 rounded font-medium text-sm transition"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate Images
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+
+              {/* Approval Actions */}
               {stage.status === 'waiting' && (
                 <div className="flex gap-2 pt-2 border-t border-white/10">
                   <motion.button

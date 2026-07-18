@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Download, Trash2, RotateCw, Maximize2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Trash2, RotateCw, Maximize2, X, Loader2 } from 'lucide-react'
+import { generateImageWithOpenAI } from '@/app/actions/image-generation'
 
 interface GalleryImage {
   id: string
   url: string
   alt: string
-  prompt: string
+  prompt?: string
   generated: boolean
 }
 
@@ -17,12 +18,14 @@ interface ImageGalleryProps {
   onRegenerate?: (id: string) => void
   onDelete?: (id: string) => void
   onDownload?: (id: string) => void
+  onImagesUpdated?: () => void
 }
 
-export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload }: ImageGalleryProps) {
+export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload, onImagesUpdated }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
   if (images.length === 0) {
     return (
@@ -40,6 +43,44 @@ export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload }
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
+  }
+
+  const handleRegenerate = async (id: string) => {
+    setIsRegenerating(true)
+    try {
+      const currentImg = images.find(img => img.id === id)
+      if (currentImg?.prompt) {
+        const result = await generateImageWithOpenAI(currentImg.prompt)
+        if (result.success) {
+          onImagesUpdated?.()
+        }
+      } else if (onRegenerate) {
+        onRegenerate(id)
+      }
+    } catch (error) {
+      console.error('Error regenerating image:', error)
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
+  const handleDownload = async (id: string) => {
+    const img = images.find(image => image.id === id)
+    if (img) {
+      const link = document.createElement('a')
+      link.href = img.url
+      link.download = `${img.alt}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+    onDownload?.(id)
+  }
+
+  const handleDelete = (id: string) => {
+    if (onDelete) {
+      onDelete(id)
+    }
   }
 
   return (
@@ -113,39 +154,40 @@ export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload }
             Preview
           </motion.button>
 
-          {currentImage.generated && onRegenerate && (
+          {currentImage.generated && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onRegenerate(currentImage.id)}
-              className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium text-sm transition"
+              onClick={() => handleRegenerate(currentImage.id)}
+              disabled={isRegenerating}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded font-medium text-sm transition"
             >
-              <RotateCw className="w-4 h-4" />
+              {isRegenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RotateCw className="w-4 h-4" />
+              )}
               Regenerate
             </motion.button>
           )}
 
-          {onDownload && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onDownload(currentImage.id)}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium text-sm transition"
-            >
-              <Download className="w-4 h-4" />
-            </motion.button>
-          )}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleDownload(currentImage.id)}
+            className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium text-sm transition"
+          >
+            <Download className="w-4 h-4" />
+          </motion.button>
 
-          {onDelete && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onDelete(currentImage.id)}
-              className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-sm transition"
-            >
-              <Trash2 className="w-4 h-4" />
-            </motion.button>
-          )}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleDelete(currentImage.id)}
+            className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium text-sm transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </motion.button>
         </div>
       </motion.div>
 

@@ -39,8 +39,6 @@ export default function ProjectPage() {
 
   useKeyboardShortcuts({
     onSearch: () => setCommandPaletteOpen(true),
-    onRunPipeline: () => console.log('Run pipeline'),
-    onSave: () => console.log('Save project'),
   })
 
   const handleStepUpdated = async () => {

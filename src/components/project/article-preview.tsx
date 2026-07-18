@@ -57,6 +57,48 @@ export function ArticlePreview({
 
   const estimatedReadTime = Math.ceil(wordCount / 200) || readTime
 
+  const handleDownloadMarkdown = () => {
+    const markdown = `# ${title}\n\n*By ${author}*\n\n${content}`
+    const element = document.createElement('a')
+    element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(markdown))
+    element.setAttribute('download', `${title.replace(/\s+/g, '-').toLowerCase()}.md`)
+    element.style.display = 'none'
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
+  const handleDownloadHTML = () => {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${title}</title>
+        <style>
+          body { font-family: serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }
+          h1 { font-size: 2.5em; margin-bottom: 10px; }
+          .meta { color: #666; margin-bottom: 20px; }
+          img { max-width: 100%; height: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <div class="meta">By ${author} | ${estimatedReadTime} min read | ${wordCount} words</div>
+        ${featuredImage ? `<img src="${featuredImage}" alt="${title}">` : ''}
+        <div>${content.replace(/\n/g, '<br>')}</div>
+      </body>
+      </html>
+    `
+    const element = document.createElement('a')
+    element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(html))
+    element.setAttribute('download', `${title.replace(/\s+/g, '-').toLowerCase()}.html`)
+    element.style.display = 'none'
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
   return (
     <div className="bg-gradient-to-b from-black via-black to-black/50 min-h-screen">
       {/* Progress Bar */}
@@ -149,20 +191,30 @@ export function ArticlePreview({
             </ReactMarkdown>
           </article>
 
-          {/* Share Buttons */}
+          {/* Share & Download Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="mt-12 pt-8 border-t border-white/10 flex gap-4"
+            className="mt-12 pt-8 border-t border-white/10 flex flex-wrap gap-3"
           >
             <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium">
               <Share2 className="w-4 h-4" />
               Share
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition font-medium">
+            <button
+              onClick={handleDownloadMarkdown}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+            >
               <Download className="w-4 h-4" />
-              Download
+              Download as Markdown
+            </button>
+            <button
+              onClick={handleDownloadHTML}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Download as HTML
             </button>
           </motion.div>
         </motion.div>

@@ -68,8 +68,6 @@ export default function NotificationsSettingsPage() {
   const [saved, setSaved] = useState(false)
 
   const handleSave = () => {
-    // Here you would save the settings to your backend
-    console.log('Saving settings:', { settings, delivery })
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
