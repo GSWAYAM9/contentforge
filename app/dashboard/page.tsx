@@ -128,40 +128,41 @@ export default function DashboardPage() {
             <GlassCard className="overflow-hidden" animated={false}>
               <div className="divide-y divide-white/10">
                 {recentProjects.map((project, index) => (
-                  <motion.div
-                    key={project.id}
-                    className="p-6 hover:bg-white/5 transition cursor-pointer"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-white mb-1">
-                          {project.name}
-                        </h3>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>{project.platform}</span>
-                          <span>•</span>
-                          <span>{project.date}</span>
+                  <Link key={project.id} href={`/project/${project.id}`}>
+                    <motion.div
+                      className="p-6 hover:bg-white/5 transition cursor-pointer"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-white mb-1">
+                            {project.name}
+                          </h3>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>{project.platform}</span>
+                            <span>•</span>
+                            <span>{project.date}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              project.status === 'Published'
+                                ? 'bg-green-500/10 text-green-400'
+                                : project.status === 'In Review'
+                                  ? 'bg-yellow-500/10 text-yellow-400'
+                                  : 'bg-blue-500/10 text-blue-400'
+                            }`}
+                          >
+                            {project.status}
+                          </span>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            project.status === 'Published'
-                              ? 'bg-green-500/10 text-green-400'
-                              : project.status === 'In Review'
-                                ? 'bg-yellow-500/10 text-yellow-400'
-                                : 'bg-blue-500/10 text-blue-400'
-                          }`}
-                        >
-                          {project.status}
-                        </span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </Link>
                 ))}
               </div>
             </GlassCard>
