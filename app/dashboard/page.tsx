@@ -10,9 +10,11 @@ import {
   BookOpen,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { GlassCard } from '@/components/shared/cards/glass-card'
 import { AnimatedButton } from '@/components/ui/animated-button'
+import { CreateDemoProject } from '@/components/dashboard/create-demo-project'
 
 const quickActions = [
   { icon: Sparkles, label: 'New Project', href: '/dashboard/projects/new' },
@@ -21,13 +23,14 @@ const quickActions = [
   { icon: TrendingUp, label: 'Analytics', href: '#' },
 ]
 
+// Real projects will be fetched from database
 const recentProjects = [
   {
     id: 1,
     name: 'AI Writing Guide',
     status: 'Published',
     date: '2 days ago',
-    platform: 'LinkedIn',
+    platform: 'Blog',
   },
   {
     id: 2,
@@ -41,7 +44,7 @@ const recentProjects = [
     name: 'Product Launch',
     status: 'In Review',
     date: 'Yesterday',
-    platform: 'Twitter',
+    platform: 'Blog',
   },
 ]
 
@@ -52,7 +55,16 @@ const stats = [
   { label: 'Avg. Engagement', value: '3.2k', change: '+12% vs last month' },
 ]
 
+// Hardcoded user for now - in production this would come from session
+const DEMO_USER = {
+  id: '1',
+  name: 'Swayam Gupta',
+  email: 'gswayam94@gmail.com'
+}
+
 export default function DashboardPage() {
+  const [user] = useState(DEMO_USER)
+
   return (
     <DashboardLayout>
       {/* Hero Section */}
@@ -65,15 +77,18 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-heading font-bold text-white mb-2">
-              Welcome back, John
+              Welcome back, {user?.name || 'there'}
             </h1>
             <p className="text-muted-foreground">
               Here's what's happening with your content today
             </p>
           </div>
-          <AnimatedButton variant="primary" size="lg" icon={<Sparkles className="h-5 w-5" />}>
-            Start New Project
-          </AnimatedButton>
+          <div className="flex items-center gap-3">
+            {user && <CreateDemoProject userId={user.id} />}
+            <AnimatedButton variant="primary" size="lg" icon={<Sparkles className="h-5 w-5" />}>
+              Start New Project
+            </AnimatedButton>
+          </div>
         </div>
 
         {/* Quick Stats */}

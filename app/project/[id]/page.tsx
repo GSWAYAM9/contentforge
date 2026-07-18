@@ -10,6 +10,19 @@ import { CommandPalette } from '@/components/shared/command-palette'
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
 import { ActivityTimeline } from '@/components/project/activity-timeline'
 import { AnalyticsView } from '@/components/project/analytics-view'
+import { getProjectById, getPipelineSteps } from '@/app/actions/projects-queries'
+
+interface PipelineStep {
+  id: number
+  projectId: number
+  userId: string
+  stepName: string
+  status: string
+  agent: string
+  content: string
+  createdAt: Date
+  updatedAt: Date
+}
 
 export default function ProjectPage() {
   const params = useParams()
@@ -18,6 +31,9 @@ export default function ProjectPage() {
   const [rightPanelTab, setRightPanelTab] = useState<'output' | 'history' | 'logs' | 'comments' | 'approvals'>('output')
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [project, setProject] = useState<any>(null)
+  const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([])
+  const [loading, setLoading] = useState(true)
 
   useKeyboardShortcuts({
     onSearch: () => setCommandPaletteOpen(true),
@@ -25,16 +41,48 @@ export default function ProjectPage() {
     onSave: () => console.log('Save project'),
   })
 
-  // Mock project data
-  const project = {
-    id: id,
-    name: 'Q3 Marketing Campaign',
-    status: 'running' as const,
-    description: 'Comprehensive blog series on AI trends',
-    created: new Date('2024-07-01'),
-    owner: 'You',
-    targetPlatform: 'Blog',
-    website: 'contentforge.ai',
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const projectResult = await getProjectById(id)
+        const stepsResult = await getPipelineSteps(id)
+
+        if (projectResult.success) {
+          setProject(projectResult.data)
+        }
+
+        if (stepsResult.success) {
+          setPipelineSteps(stepsResult.data)
+        }
+      } catch (error) {
+        console.error('Error loading project:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (id) {
+      loadData()
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading project...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return (
+      <div className="h-screen bg-background flex items-center justify-center">
+        <p className="text-red-400">Project not found</p>
+      </div>
+    )
   }
 
   return (
@@ -59,10 +107,11 @@ export default function ProjectPage() {
             {activeTab === 'pipeline' && (
               <PipelineViewer 
                 projectId={id}
-              expandedStep={expandedStep}
-              onExpandStep={setExpandedStep}
-            />
-          )}
+                steps={pipelineSteps}
+                expandedStep={expandedStep}
+                onExpandStep={setExpandedStep}
+              />
+            )}
           {activeTab === 'outputs' && (
             <div className="p-8 text-center text-muted-foreground">
               Outputs view coming soon

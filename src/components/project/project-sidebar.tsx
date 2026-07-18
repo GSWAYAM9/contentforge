@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 interface Project {
-  id: string
+  id: string | number
   name: string
   status: string
   description?: string
@@ -139,7 +139,7 @@ export function ProjectSidebar({ project, activeTab, onTabChange }: ProjectSideb
 
       {/* Footer */}
       <div className="p-4 border-t border-white/10 text-xs text-muted-foreground">
-        <p>Project ID: {project.id.slice(0, 8)}</p>
+        <p>Project ID: {String(project.id).slice(0, 8)}</p>
       </div>
     </motion.div>
   )

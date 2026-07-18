@@ -6,10 +6,12 @@ import { ChevronDown, Zap, RotateCw, Eye, Clock } from 'lucide-react'
 interface Stage {
   id: number
   name: string
-  icon: string
-  status: 'pending' | 'queued' | 'running' | 'waiting_approval' | 'completed' | 'failed'
-  duration: string
-  tokens: number
+  status: string
+  agent?: string
+  content?: string
+  icon?: string
+  duration?: string
+  tokens?: number
 }
 
 interface PipelineStepCardProps {
@@ -18,17 +20,28 @@ interface PipelineStepCardProps {
   onExpand: () => void
 }
 
-const statusConfig = {
-  pending: { bg: 'bg-slate-500/10', border: 'border-slate-500/30', text: 'text-slate-300', icon: '⏳' },
-  queued: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-300', icon: '📋' },
-  running: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', icon: '⚡' },
-  waiting_approval: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-300', icon: '⏸️' },
-  completed: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-300', icon: '✅' },
-  failed: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-300', icon: '❌' },
+const statusConfig: Record<string, { bg: string; border: string; text: string; icon: string; label: string }> = {
+  pending: { bg: 'bg-slate-500/10', border: 'border-slate-500/30', text: 'text-slate-300', icon: '⏳', label: 'Pending' },
+  queued: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-300', icon: '📋', label: 'Queued' },
+  in_progress: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', icon: '⚡', label: 'Running' },
+  running: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', icon: '⚡', label: 'Running' },
+  waiting: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-300', icon: '⏸️', label: 'Awaiting Approval' },
+  completed: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-300', icon: '✅', label: 'Completed' },
+  failed: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-300', icon: '❌', label: 'Failed' },
 }
 
 export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCardProps) {
-  const config = statusConfig[stage.status]
+  const config = statusConfig[stage.status] || statusConfig['pending']
+  
+  // Parse content JSON safely
+  let parsedContent: any = {}
+  try {
+    if (stage.content) {
+      parsedContent = JSON.parse(stage.content)
+    }
+  } catch (e) {
+    console.error('Failed to parse stage content:', e)
+  }
 
   return (
     <motion.div
@@ -43,46 +56,32 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
         <div className="flex items-center gap-4 flex-1">
           {/* Avatar/Icon */}
           <motion.div
-            animate={stage.status === 'running' ? { scale: [1, 1.1, 1] } : {}}
+            animate={['in_progress', 'running'].includes(stage.status) ? { scale: [1, 1.1, 1] } : {}}
             transition={{ repeat: Infinity, duration: 1.5 }}
             className="text-3xl"
           >
-            {stage.icon}
+            {config.icon}
           </motion.div>
 
           {/* Info */}
           <div className="flex-1 text-left">
             <h3 className="font-heading font-semibold text-white">{stage.name}</h3>
             <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-              {stage.status === 'running' && (
+              {['in_progress', 'running'].includes(stage.status) && (
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
                   <span>Processing...</span>
                 </div>
               )}
-              {stage.status === 'waiting_approval' && (
+              {stage.status === 'waiting' && (
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
                   <span>Awaiting Approval</span>
                 </div>
               )}
-              {stage.status === 'completed' && (
-                <span className={config.text}>Completed</span>
-              )}
-              {stage.status === 'queued' && (
-                <span className={config.text}>Queued</span>
-              )}
-              {stage.duration !== '—' && (
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {stage.duration}
-                </div>
-              )}
-              {stage.tokens > 0 && (
-                <div className="flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  {stage.tokens} tokens
-                </div>
+              <span className={config.text}>{config.label}</span>
+              {stage.agent && (
+                <span className="text-xs text-purple-400">{stage.agent}</span>
               )}
             </div>
           </div>
@@ -128,40 +127,38 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
             className="border-t border-white/10 bg-white/5"
           >
             <div className="px-6 py-4 space-y-4">
-              {/* Input/Output Preview */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Input</h4>
-                  <div className="bg-black/40 rounded p-3 text-xs text-muted-foreground h-20 overflow-y-auto font-mono">
-                    {stage.status === 'completed' ? 'Blog outline for Q3 AI trends' : 'Waiting for previous stage...'}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Output</h4>
-                  <div className="bg-black/40 rounded p-3 text-xs text-green-300 h-20 overflow-y-auto font-mono">
-                    {stage.status === 'completed' ? 'Research summary completed with 15 sources' : '—'}
-                  </div>
+              {/* Content Preview */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Data</h4>
+                <div className="bg-black/40 rounded p-3 text-xs text-muted-foreground h-24 overflow-y-auto font-mono">
+                  {Object.keys(parsedContent).length > 0 ? (
+                    <pre>{JSON.stringify(parsedContent, null, 2)}</pre>
+                  ) : (
+                    <span>{stage.status === 'completed' ? 'Execution completed' : 'Waiting to execute...'}</span>
+                  )}
                 </div>
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10">
-                <div>
-                  <p className="text-xs text-muted-foreground">Execution Time</p>
-                  <p className="font-semibold text-white">{stage.duration}</p>
+              {Object.keys(parsedContent).length > 0 && (
+                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tokens Used</p>
+                    <p className="font-semibold text-white">{parsedContent.tokensUsed || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Cost</p>
+                    <p className="font-semibold text-white">${parsedContent.cost || '0.00'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="font-semibold text-white capitalize">{stage.status}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tokens Used</p>
-                  <p className="font-semibold text-white">{stage.tokens.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Cost</p>
-                  <p className="font-semibold text-white">${(stage.tokens * 0.000002).toFixed(4)}</p>
-                </div>
-              </div>
+              )}
 
               {/* Actions */}
-              {stage.status === 'waiting_approval' && (
+              {stage.status === 'waiting' && (
                 <div className="flex gap-2 pt-2 border-t border-white/10">
                   <motion.button
                     whileHover={{ scale: 1.02 }}

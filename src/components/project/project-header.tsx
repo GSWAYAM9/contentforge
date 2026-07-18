@@ -4,9 +4,9 @@ import { motion } from 'framer-motion'
 import { ChevronRight, Play, Save, Download, Share2, MoreVertical, Zap } from 'lucide-react'
 
 interface Project {
-  id: string
+  id: string | number
   name: string
-  status: 'draft' | 'running' | 'paused' | 'completed' | 'failed'
+  status?: string
 }
 
 interface ProjectHeaderProps {
@@ -14,16 +14,19 @@ interface ProjectHeaderProps {
   onSave: () => void
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: 'bg-slate-500/20', text: 'text-slate-300', label: 'Draft' },
   running: { bg: 'bg-blue-500/20', text: 'text-blue-300', label: 'Running' },
+  in_progress: { bg: 'bg-blue-500/20', text: 'text-blue-300', label: 'In Progress' },
   paused: { bg: 'bg-yellow-500/20', text: 'text-yellow-300', label: 'Paused' },
   completed: { bg: 'bg-green-500/20', text: 'text-green-300', label: 'Completed' },
   failed: { bg: 'bg-red-500/20', text: 'text-red-300', label: 'Failed' },
+  pending: { bg: 'bg-gray-500/20', text: 'text-gray-300', label: 'Pending' },
 }
 
 export function ProjectHeader({ project, onSave }: ProjectHeaderProps) {
-  const status = statusConfig[project.status]
+  const projectStatus = project.status || 'draft'
+  const status = statusConfig[projectStatus] || statusConfig['draft']
 
   return (
     <motion.div
@@ -43,17 +46,17 @@ export function ProjectHeader({ project, onSave }: ProjectHeaderProps) {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <motion.div
-              animate={project.status === 'running' ? { scale: [1, 1.2, 1] } : {}}
+              animate={['running', 'in_progress'].includes(projectStatus) ? { scale: [1, 1.2, 1] } : {}}
               transition={{ repeat: Infinity, duration: 2 }}
               className={`px-3 py-1 rounded-full text-sm font-medium ${status.bg} ${status.text}`}
             >
-              {project.status === 'running' && (
+              {['running', 'in_progress'].includes(projectStatus) && (
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                   {status.label}
                 </div>
               )}
-              {project.status !== 'running' && status.label}
+              {!['running', 'in_progress'].includes(projectStatus) && status.label}
             </motion.div>
           </div>
         </div>
