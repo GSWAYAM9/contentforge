@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, CheckCircle2, Clock, User, MessageSquare, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock, User, MessageSquare, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { approveStep, rejectStep } from '@/app/actions/project-operations'
 
 interface Approval {
   id: number
@@ -14,23 +15,28 @@ interface Approval {
 }
 
 interface ApprovalGateProps {
-  stepName: string
-  approvals: Approval[]
+  stepId: number
+  stepName?: string
+  approvals?: Approval[]
   onApprove?: (id: number, feedback?: string) => void
   onReject?: (id: number, feedback?: string) => void
+  onApprovalUpdated?: () => void
   requiredApprovals?: number
 }
 
 export function ApprovalGate({
-  stepName,
+  stepId,
+  stepName = 'Approval Gate',
   approvals = [],
   onApprove,
   onReject,
+  onApprovalUpdated,
   requiredApprovals = 1,
 }: ApprovalGateProps) {
   const [feedback, setFeedback] = useState('')
   const [selectedApproval, setSelectedApproval] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const approvedCount = approvals.filter((a) => a.status === 'approved').length
   const rejectedCount = approvals.filter((a) => a.status === 'rejected').length
@@ -50,19 +56,41 @@ export function ApprovalGate({
     }
   }
 
-  const handleApprove = () => {
-    if (selectedApproval && onApprove) {
-      onApprove(selectedApproval, feedback)
+  const handleApprove = async () => {
+    if (!selectedApproval) return
+    setIsLoading(true)
+    try {
+      if (onApprove) {
+        onApprove(selectedApproval, feedback)
+      } else {
+        await approveStep(selectedApproval, feedback)
+      }
       setFeedback('')
       setSelectedApproval(null)
+      onApprovalUpdated?.()
+    } catch (error) {
+      console.error('Error approving step:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleReject = () => {
-    if (selectedApproval && onReject) {
-      onReject(selectedApproval, feedback)
+  const handleReject = async () => {
+    if (!selectedApproval) return
+    setIsLoading(true)
+    try {
+      if (onReject) {
+        onReject(selectedApproval, feedback)
+      } else {
+        await rejectStep(selectedApproval, feedback)
+      }
       setFeedback('')
       setSelectedApproval(null)
+      onApprovalUpdated?.()
+    } catch (error) {
+      console.error('Error rejecting step:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 

@@ -43,6 +43,17 @@ export default function ProjectPage() {
     onSave: () => console.log('Save project'),
   })
 
+  const handleStepUpdated = async () => {
+    try {
+      const stepsResult = await getPipelineSteps(id)
+      if (stepsResult.success) {
+        setPipelineSteps(stepsResult.data)
+      }
+    } catch (error) {
+      console.error('Error refreshing steps:', error)
+    }
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -112,6 +123,7 @@ export default function ProjectPage() {
                 steps={pipelineSteps}
                 expandedStep={expandedStep}
                 onExpandStep={setExpandedStep}
+                onStepUpdated={handleStepUpdated}
               />
             )}
           {activeTab === 'outputs' && (

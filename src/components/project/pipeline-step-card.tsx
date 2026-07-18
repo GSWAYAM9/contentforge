@@ -1,7 +1,9 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Zap, RotateCw, Eye, Clock } from 'lucide-react'
+import { ChevronDown, Zap, RotateCw, Eye, Clock, Play, CheckCircle2, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { runPipelineStep, requestApproval } from '@/app/actions/project-operations'
 
 interface Stage {
   id: number
@@ -12,12 +14,15 @@ interface Stage {
   icon?: string
   duration?: string
   tokens?: number
+  projectId?: string
 }
 
 interface PipelineStepCardProps {
   stage: Stage
   isExpanded: boolean
   onExpand: () => void
+  projectId?: string
+  onStepUpdated?: () => void
 }
 
 const statusConfig: Record<string, { bg: string; border: string; text: string; icon: string; label: string }> = {
@@ -30,8 +35,9 @@ const statusConfig: Record<string, { bg: string; border: string; text: string; i
   failed: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-300', icon: '❌', label: 'Failed' },
 }
 
-export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCardProps) {
+export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onStepUpdated }: PipelineStepCardProps) {
   const config = statusConfig[stage.status] || statusConfig['pending']
+  const [isLoading, setIsLoading] = useState(false)
   
   // Parse content JSON safely
   let parsedContent: any = {}
@@ -41,6 +47,32 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
     }
   } catch (e) {
     console.error('Failed to parse stage content:', e)
+  }
+
+  const handleRunStep = async () => {
+    if (!projectId) return
+    setIsLoading(true)
+    try {
+      await runPipelineStep(projectId, stage.name, stage.id, stage.content || '')
+      onStepUpdated?.()
+    } catch (error) {
+      console.error('Error running step:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRequestApproval = async () => {
+    if (!projectId) return
+    setIsLoading(true)
+    try {
+      await requestApproval(projectId, stage.id, stage.name)
+      onStepUpdated?.()
+    } catch (error) {
+      console.error('Error requesting approval:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -89,22 +121,44 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
 
         {/* Actions */}
         <div className="flex items-center gap-2 ml-4">
-          {stage.status === 'completed' && (
+          {stage.status === 'pending' && (
             <motion.button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRunStep()
+              }}
+              disabled={isLoading}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-white/10 rounded transition opacity-0 group-hover:opacity-100"
+              className="p-2 hover:bg-purple-500/20 rounded transition opacity-0 group-hover:opacity-100 disabled:opacity-50"
+              title="Run this step"
             >
-              <RotateCw className="w-4 h-4 text-muted-foreground" />
+              <Play className="w-4 h-4 text-purple-400" />
             </motion.button>
           )}
           {stage.status === 'completed' && (
             <motion.button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRequestApproval()
+              }}
+              disabled={isLoading}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-white/10 rounded transition opacity-0 group-hover:opacity-100"
+              className="p-2 hover:bg-green-500/20 rounded transition opacity-0 group-hover:opacity-100 disabled:opacity-50"
+              title="Request approval"
             >
-              <Eye className="w-4 h-4 text-muted-foreground" />
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
+            </motion.button>
+          )}
+          {stage.status === 'waiting' && (
+            <motion.button
+              onClick={(e) => e.stopPropagation()}
+              whileHover={{ scale: 1.1 }}
+              className="p-2 rounded opacity-0 group-hover:opacity-100"
+              title="Awaiting approval"
+            >
+              <Clock className="w-4 h-4 text-yellow-400 animate-spin" />
             </motion.button>
           )}
 

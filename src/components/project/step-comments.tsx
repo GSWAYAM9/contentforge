@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageSquare, Send, Trash2, Reply, X } from 'lucide-react'
+import { MessageSquare, Send, Trash2, Reply, X, Loader2 } from 'lucide-react'
+import { saveComment } from '@/app/actions/project-operations'
 
 interface Comment {
   id: number
   author: string
-  content: string
+  text: string
   timestamp: Date
   replies?: Comment[]
   isReply?: boolean
@@ -15,29 +16,49 @@ interface Comment {
 
 interface StepCommentsProps {
   stepId: number
-  comments: Comment[]
+  comments?: Comment[]
+  onCommentAdded?: () => void
 }
 
-export function StepComments({ stepId, comments = [] }: StepCommentsProps) {
+export function StepComments({ stepId, comments = [], onCommentAdded }: StepCommentsProps) {
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [displayComments, setDisplayComments] = useState<Comment[]>(comments)
 
-  const handleAddComment = () => {
+  useEffect(() => {
+    setDisplayComments(comments)
+  }, [comments])
+
+  const handleAddComment = async () => {
     if (!newComment.trim()) return
-
-    // In a real app, this would call a server action
-    console.log('[v0] Adding comment:', newComment)
-    setNewComment('')
+    setIsLoading(true)
+    try {
+      await saveComment(stepId, newComment)
+      setNewComment('')
+      onCommentAdded?.()
+    } catch (error) {
+      console.error('Error adding comment:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleAddReply = (commentId: number) => {
+  const handleAddReply = async (commentId: number) => {
     if (!replyText.trim()) return
-
-    console.log('[v0] Adding reply to:', commentId, replyText)
-    setReplyText('')
-    setReplyingTo(null)
+    setIsLoading(true)
+    try {
+      await saveComment(stepId, replyText)
+      setReplyText('')
+      setReplyingTo(null)
+      onCommentAdded?.()
+    } catch (error) {
+      console.error('Error adding reply:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const totalComments = comments.length + comments.reduce((acc, c) => acc + (c.replies?.length || 0), 0)
@@ -71,17 +92,21 @@ export function StepComments({ stepId, comments = [] }: StepCommentsProps) {
               />
               <button
                 onClick={handleAddComment}
-                disabled={!newComment.trim()}
+                disabled={!newComment.trim() || isLoading}
                 className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded text-sm font-medium transition"
               >
-                <Send className="w-3 h-3" />
+                {isLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Send className="w-3 h-3" />
+                )}
                 Comment
               </button>
             </div>
 
             {/* Comments List */}
             <div className="space-y-3">
-              {comments.map((comment) => (
+              {displayComments.map((comment) => (
                 <motion.div
                   key={comment.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -100,7 +125,7 @@ export function StepComments({ stepId, comments = [] }: StepCommentsProps) {
                     </button>
                   </div>
 
-                  <p className="text-sm text-gray-300 mb-2">{comment.content}</p>
+                  <p className="text-sm text-gray-300 mb-2">{comment.text || comment.content}</p>
 
                   <motion.button
                     onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
@@ -152,7 +177,7 @@ export function StepComments({ stepId, comments = [] }: StepCommentsProps) {
                       {comment.replies.map((reply) => (
                         <div key={reply.id} className="p-2 bg-white/5 rounded text-xs">
                           <p className="font-medium text-purple-300">{reply.author}</p>
-                          <p className="text-gray-300 mt-1">{reply.content}</p>
+                          <p className="text-gray-300 mt-1">{reply.text || reply.content}</p>
                         </div>
                       ))}
                     </div>

@@ -20,9 +20,10 @@ interface PipelineViewerProps {
   steps: PipelineStep[]
   expandedStep: number | null
   onExpandStep: (step: number | null) => void
+  onStepUpdated?: () => void
 }
 
-export function PipelineViewer({ projectId, steps, expandedStep, onExpandStep }: PipelineViewerProps) {
+export function PipelineViewer({ projectId, steps, expandedStep, onExpandStep, onStepUpdated }: PipelineViewerProps) {
   // Map database status to display status
   const getStatusDisplay = (status: string) => {
     switch (status) {
@@ -87,9 +88,12 @@ export function PipelineViewer({ projectId, steps, expandedStep, onExpandStep }:
                     status: step.status,
                     agent: step.agent,
                     content: step.content,
+                    projectId: projectId,
                   }}
                   isExpanded={expandedStep === step.id}
                   onExpand={() => onExpandStep(expandedStep === step.id ? null : step.id)}
+                  projectId={projectId}
+                  onStepUpdated={onStepUpdated}
                 />
               </motion.div>
             ))}
