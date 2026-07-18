@@ -3,12 +3,15 @@
 import { motion } from 'framer-motion'
 import { ArrowRight, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatedButton } from '@/components/ui/animated-button'
 import { PremiumInput } from '@/components/ui/premium-input'
 import { Logo } from '@/components/shared/logo'
+import { loginUser } from '@/app/actions/auth'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,11 +23,17 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // TODO: Implement actual authentication
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      console.log('Login:', { email, password })
+      const result = await loginUser({ email, password })
+      if (result.success) {
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        setError(result.error || 'Failed to sign in')
+      }
     } catch (err) {
-      setError('Invalid credentials')
+      setError(
+        err instanceof Error ? err.message : 'Failed to sign in. Please try again.'
+      )
     } finally {
       setLoading(false)
     }

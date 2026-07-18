@@ -3,12 +3,15 @@
 import { motion } from 'framer-motion'
 import { ArrowRight, Mail, Lock, User } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AnimatedButton } from '@/components/ui/animated-button'
 import { PremiumInput } from '@/components/ui/premium-input'
 import { Logo } from '@/components/shared/logo'
+import { registerUser } from '@/app/actions/auth'
 
 export default function SignupPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,24 +31,20 @@ export default function SignupPage() {
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
-
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
-    }
-
     setLoading(true)
 
     try {
-      // TODO: Implement actual authentication
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      console.log('Signup:', formData)
+      const result = await registerUser(formData)
+      if (result.success) {
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        setError(result.error || 'Failed to create account')
+      }
     } catch (err) {
-      setError('Failed to create account')
+      setError(
+        err instanceof Error ? err.message : 'Failed to create account. Please try again.'
+      )
     } finally {
       setLoading(false)
     }

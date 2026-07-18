@@ -10,8 +10,10 @@ import {
   Sun,
   ChevronDown,
   Zap,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
+import { logout } from '@/app/actions/logout'
 
 export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -150,6 +152,13 @@ export function Navbar() {
                     {item.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => logout()}
+                  className="w-full text-left px-3 py-2 rounded text-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition flex items-center gap-2 border-t border-white/10 mt-2 pt-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
               </div>
             </motion.div>
           </motion.div>
