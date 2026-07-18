@@ -127,32 +127,81 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
             className="border-t border-white/10 bg-white/5"
           >
             <div className="px-6 py-4 space-y-4">
-              {/* Content Preview */}
+              {/* Live Logs */}
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Data</h4>
-                <div className="bg-black/40 rounded p-3 text-xs text-muted-foreground h-24 overflow-y-auto font-mono">
-                  {Object.keys(parsedContent).length > 0 ? (
-                    <pre>{JSON.stringify(parsedContent, null, 2)}</pre>
-                  ) : (
-                    <span>{stage.status === 'completed' ? 'Execution completed' : 'Waiting to execute...'}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Execution Logs</h4>
+                  {['in_progress', 'running'].includes(stage.status) && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      <span className="text-xs text-green-400">Live</span>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-black/60 rounded p-3 text-xs text-gray-300 h-32 overflow-y-auto font-mono border border-white/10">
+                  <div>{new Date().toLocaleTimeString()} - Starting {stage.name}</div>
+                  <div>{parsedContent.logs ? parsedContent.logs : 'Processing...'}</div>
+                  {['in_progress', 'running'].includes(stage.status) && (
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="text-gray-500"
+                    >
+                      ▁ Processing...
+                    </motion.div>
                   )}
                 </div>
               </div>
 
-              {/* Stats */}
-              {Object.keys(parsedContent).length > 0 && (
-                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10">
-                  <div>
+              {/* Execution Metrics */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Execution Metrics</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.duration || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
                     <p className="text-xs text-muted-foreground">Tokens Used</p>
-                    <p className="font-semibold text-white">{parsedContent.tokensUsed || '—'}</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.tokensUsed || '0'}</p>
                   </div>
-                  <div>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
                     <p className="text-xs text-muted-foreground">Cost</p>
-                    <p className="font-semibold text-white">${parsedContent.cost || '0.00'}</p>
+                    <p className="font-semibold text-white text-sm">${parsedContent.cost || '0.00'}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="font-semibold text-white capitalize">{stage.status}</p>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
+                    <p className="text-xs text-muted-foreground">Completion</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.completion || '0'}%</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              {['in_progress', 'running', 'pending', 'queued'].includes(stage.status) && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground">Progress</h4>
+                    <span className="text-xs text-gray-400">{parsedContent.completion || 0}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: '0%' }}
+                      animate={{
+                        width: `${parsedContent.completion || 0}%`,
+                      }}
+                      transition={{ type: 'spring', stiffness: 100 }}
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Output Data */}
+              {Object.keys(parsedContent).length > 0 && parsedContent.output && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Output Data</h4>
+                  <div className="bg-black/40 rounded p-3 text-xs text-gray-300 max-h-40 overflow-y-auto font-mono border border-white/10">
+                    <pre>{JSON.stringify(parsedContent.output, null, 2)}</pre>
                   </div>
                 </div>
               )}
