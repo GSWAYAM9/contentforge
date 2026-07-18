@@ -1,28 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { User, Lock, Bell, Shield, Trash2, ChevronRight, Settings } from 'lucide-react'
+import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { GlassCard } from '@/components/shared/cards/glass-card'
 import { AnimatedButton } from '@/components/ui/animated-button'
-import { PremiumInput } from '@/components/ui/premium-input'
 
-const settingsSections = [
-  {
-    title: 'Profile Settings',
-    items: ['Full Name', 'Email', 'Avatar'],
-  },
-  {
-    title: 'Workspace',
-    items: ['Workspace Name', 'Workspace URL', 'Members'],
-  },
-  {
-    title: 'AI & Agents',
-    items: ['API Keys', 'Model Preferences', 'Agent Configuration'],
-  },
-  {
-    title: 'Integrations',
-    items: ['LinkedIn', 'Twitter', 'Blog Platforms'],
-  },
+const settingsTabs = [
+  { id: 'profile', label: 'Profile', icon: User, href: '/dashboard/settings/profile' },
+  { id: 'password', label: 'Password', icon: Lock, href: '/dashboard/settings/password' },
+  { id: 'notifications', label: 'Notifications', icon: Bell, href: '/dashboard/settings/notifications' },
+  { id: 'security', label: 'Security', icon: Shield, href: '/dashboard/settings/security' },
+  { id: 'danger', label: 'Delete Account', icon: Trash2, href: '/dashboard/settings/delete-account' },
 ]
 
 export default function SettingsPage() {
@@ -35,103 +26,86 @@ export default function SettingsPage() {
       >
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-heading font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Settings className="w-10 h-10" />
             Settings
           </h1>
           <p className="text-muted-foreground">
-            Configure your account and preferences
+            Manage your account, security, and preferences
           </p>
         </div>
 
-        {/* Settings Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {settingsSections.map((section, index) => (
-            <motion.div
-              key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.3 }}
-            >
-              <GlassCard className="p-6" delay={index}>
-                <h3 className="text-lg font-heading font-bold text-white mb-4">
-                  {section.title}
-                </h3>
-                <div className="space-y-3">
-                  {section.items.map((item) => (
-                    <div key={item} className="text-sm text-muted-foreground">
-                      {item}
+        {/* Settings Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {settingsTabs.map((tab, index) => {
+            const Icon = tab.icon
+            const isRed = tab.id === 'danger'
+            return (
+              <motion.div
+                key={tab.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Link href={tab.href}>
+                  <motion.div
+                    whileHover={{ scale: 1.02, y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-6 rounded-xl border transition cursor-pointer ${
+                      isRed
+                        ? 'bg-red-500/5 border-red-500/30 hover:bg-red-500/10'
+                        : 'glass-effect border-white/10 hover:border-purple-500/50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className={`p-3 rounded-lg ${
+                          isRed ? 'bg-red-500/20 text-red-400' : 'bg-purple-500/20 text-purple-400'
+                        }`}
+                      >
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </div>
-                  ))}
-                </div>
-              </GlassCard>
-            </motion.div>
-          ))}
+                    <h3 className={`font-semibold mb-1 ${isRed ? 'text-red-300' : 'text-white'}`}>
+                      {tab.label}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {tab.id === 'profile' && 'Update your name, email, and avatar'}
+                      {tab.id === 'password' && 'Change your account password'}
+                      {tab.id === 'notifications' && 'Control notification preferences'}
+                      {tab.id === 'security' && 'Two-factor authentication and sessions'}
+                      {tab.id === 'danger' && 'Permanently delete your account'}
+                    </p>
+                  </motion.div>
+                </Link>
+              </motion.div>
+            )
+          })}
         </div>
 
-        {/* Profile Form Section */}
+        {/* Quick Stats */}
         <motion.div
-          className="mt-8"
+          className="mt-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
+          transition={{ delay: 0.3 }}
         >
-          <h2 className="text-2xl font-heading font-bold text-white mb-6">
-            Profile Settings
-          </h2>
-
-          <GlassCard className="p-8" animated={false}>
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <PremiumInput label="Full Name" placeholder="John Doe" />
-                <PremiumInput label="Email" type="email" placeholder="john@example.com" />
+          <h2 className="text-xl font-bold text-white mb-4">Account Status</h2>
+          <GlassCard className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-muted-foreground text-sm mb-2">Account Status</p>
+                <p className="text-white font-semibold">Active</p>
               </div>
-
-              <PremiumInput
-                label="Workspace Name"
-                placeholder="My Workspace"
-              />
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-4">
-                  Biography
-                </label>
-                <textarea
-                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                  rows={4}
-                  placeholder="Tell us about yourself..."
-                />
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-muted-foreground text-sm mb-2">Member Since</p>
+                <p className="text-white font-semibold">July 2024</p>
               </div>
-
-              <div className="flex gap-4 pt-4 border-t border-white/10">
-                <AnimatedButton variant="primary">Save Changes</AnimatedButton>
-                <AnimatedButton variant="secondary">Cancel</AnimatedButton>
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-muted-foreground text-sm mb-2">Security Level</p>
+                <p className="text-green-400 font-semibold">Secure</p>
               </div>
-            </form>
-          </GlassCard>
-        </motion.div>
-
-        {/* Danger Zone */}
-        <motion.div
-          className="mt-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.3 }}
-        >
-          <h2 className="text-2xl font-heading font-bold text-white mb-6">
-            Danger Zone
-          </h2>
-
-          <GlassCard className="p-8 border-red-500/20" animated={false}>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-white mb-1">Delete Account</h3>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data
-                </p>
-              </div>
-              <AnimatedButton variant="outline" className="text-red-400 border-red-500/50 hover:bg-red-500/10">
-                Delete
-              </AnimatedButton>
             </div>
           </GlassCard>
         </motion.div>

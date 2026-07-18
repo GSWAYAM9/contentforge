@@ -2,6 +2,9 @@
 
 import { motion } from 'framer-motion'
 import { FileText, History, Terminal, MessageSquare, CheckCircle2 } from 'lucide-react'
+import { OutputViewer } from './output-viewer'
+import { StepComments } from './step-comments'
+import { ApprovalGate } from './approval-gate'
 
 interface ProjectRightPanelProps {
   activeTab: 'output' | 'history' | 'logs' | 'comments' | 'approvals'
@@ -53,30 +56,12 @@ export function ProjectRightPanel({ activeTab, onTabChange, expandedStep }: Proj
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-4 space-y-4"
+            className="p-4"
           >
-            <div>
-              <h3 className="font-semibold text-white mb-2">Current Output</h3>
-              <div className="bg-black/40 rounded-lg p-4 text-sm text-muted-foreground space-y-3">
-                <div>
-                  <p className="font-medium text-white mb-1">Research Summary</p>
-                  <p className="text-xs">
-                    Compiled 15 authoritative sources on AI trends. Key findings:
-                    45% increase in enterprise adoption, 3 major breakthroughs in reasoning models.
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-white mb-1">Keywords Identified</p>
-                  <div className="flex flex-wrap gap-1">
-                    {['AI Trends', 'LLMs', 'Enterprise AI', 'Reasoning'].map((kw) => (
-                      <span key={kw} className="px-2 py-1 bg-accent/20 text-accent rounded text-xs">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <OutputViewer
+              type="markdown"
+              content="# Research Summary\n\nCompiled 15 authoritative sources on AI trends.\n\n## Key Findings\n- 45% increase in enterprise adoption\n- 3 major breakthroughs in reasoning models\n- Significant progress in multimodal AI\n\n## Keywords\nAI Trends, LLMs, Enterprise AI, Reasoning"
+            />
           </motion.div>
         )}
 
@@ -121,20 +106,9 @@ export function ProjectRightPanel({ activeTab, onTabChange, expandedStep }: Proj
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-4 space-y-3"
+            className="p-4"
           >
-            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-              <div className="flex items-start gap-2 mb-2">
-                <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-xs font-bold">
-                  Y
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-white">You</p>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
-                </div>
-              </div>
-              <p className="text-sm text-foreground">Great outline! Let's expand on the enterprise adoption section.</p>
-            </div>
+            <StepComments stepId={expandedStep || 0} />
           </motion.div>
         )}
 
@@ -142,22 +116,9 @@ export function ProjectRightPanel({ activeTab, onTabChange, expandedStep }: Proj
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-4 space-y-3"
+            className="p-4"
           >
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-green-400" />
-                <p className="text-xs font-semibold text-green-300">Outline Approved</p>
-              </div>
-              <p className="text-xs text-muted-foreground">You approved this 2 hours ago</p>
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                <p className="text-xs font-semibold text-yellow-300">Awaiting Your Approval</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Human approval needed for outline</p>
-            </div>
+            <ApprovalGate stepId={expandedStep || 0} />
           </motion.div>
         )}
       </div>

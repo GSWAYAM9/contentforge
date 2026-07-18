@@ -185,14 +185,40 @@ export const auditLogs = pgTable(
     id: serial('id').primaryKey(),
     userId: text('userId').notNull(),
     action: varchar('action', { length: 255 }).notNull(),
+    category: varchar('category', { length: 50 }).default('system'),
     resource: varchar('resource', { length: 255 }),
     resourceId: integer('resourceId'),
+    description: text('description'),
     metadata: text('metadata'),
+    ipAddress: varchar('ipAddress', { length: 45 }),
+    userAgent: text('userAgent'),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
   },
   (table) => ({
     userIdIdx: index('auditLogs_userId_idx').on(table.userId),
     actionIdx: index('auditLogs_action_idx').on(table.action),
+    categoryIdx: index('auditLogs_category_idx').on(table.category),
+  })
+)
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: varchar('type', { length: 50 }).notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    message: text('message').notNull(),
+    actionUrl: varchar('actionUrl', { length: 500 }),
+    icon: varchar('icon', { length: 100 }),
+    read: boolean('read').default(false),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('notifications_userId_idx').on(table.userId),
+    readIdx: index('notifications_read_idx').on(table.read),
   })
 )
 
@@ -207,6 +233,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   settings: one(userSettings),
   apiKeys: many(apiKeys),
   auditLogs: many(auditLogs),
+  notifications: many(notifications),
 }))
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -231,4 +258,8 @@ export const approvalsRelations = relations(approvals, ({ one }) => ({
 
 export const analyticsRelations = relations(analytics, ({ one }) => ({
   project: one(projects, { fields: [analytics.projectId], references: [projects.id] }),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }))

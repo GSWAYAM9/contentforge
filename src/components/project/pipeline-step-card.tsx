@@ -1,7 +1,11 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Zap, RotateCw, Eye, Clock } from 'lucide-react'
+import { ChevronDown, Zap, RotateCw, Eye, Clock, Play, CheckCircle2, XCircle, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { runPipelineStep, requestApproval } from '@/app/actions/project-operations'
+import { generateContentWithClaude } from '@/app/actions/ai-generation'
+import { generateImageWithOpenAI } from '@/app/actions/image-generation'
 
 interface Stage {
   id: number
@@ -12,12 +16,15 @@ interface Stage {
   icon?: string
   duration?: string
   tokens?: number
+  projectId?: string
 }
 
 interface PipelineStepCardProps {
   stage: Stage
   isExpanded: boolean
   onExpand: () => void
+  projectId?: string
+  onStepUpdated?: () => void
 }
 
 const statusConfig: Record<string, { bg: string; border: string; text: string; icon: string; label: string }> = {
@@ -30,8 +37,9 @@ const statusConfig: Record<string, { bg: string; border: string; text: string; i
   failed: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-300', icon: '❌', label: 'Failed' },
 }
 
-export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCardProps) {
+export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onStepUpdated }: PipelineStepCardProps) {
   const config = statusConfig[stage.status] || statusConfig['pending']
+  const [isLoading, setIsLoading] = useState(false)
   
   // Parse content JSON safely
   let parsedContent: any = {}
@@ -41,6 +49,60 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
     }
   } catch (e) {
     console.error('Failed to parse stage content:', e)
+  }
+
+  const handleRunStep = async () => {
+    if (!projectId) return
+    setIsLoading(true)
+    try {
+      await runPipelineStep(projectId, stage.name, stage.id, stage.content || '')
+      onStepUpdated?.()
+    } catch (error) {
+      console.error('Error running step:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRequestApproval = async () => {
+    if (!projectId) return
+    setIsLoading(true)
+    try {
+      await requestApproval(projectId, stage.id, stage.name)
+      onStepUpdated?.()
+    } catch (error) {
+      console.error('Error requesting approval:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGenerateContent = async () => {
+    setIsLoading(true)
+    try {
+      const result = await generateContentWithClaude(`Generate content for ${stage.name}`, 'Technology')
+      if (result.success) {
+        onStepUpdated?.()
+      }
+    } catch (error) {
+      console.error('Error generating content:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGenerateImage = async () => {
+    setIsLoading(true)
+    try {
+      const result = await generateImageWithOpenAI(`Professional image for ${stage.name}`)
+      if (result.success) {
+        onStepUpdated?.()
+      }
+    } catch (error) {
+      console.error('Error generating image:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -89,22 +151,44 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
 
         {/* Actions */}
         <div className="flex items-center gap-2 ml-4">
-          {stage.status === 'completed' && (
+          {stage.status === 'pending' && (
             <motion.button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRunStep()
+              }}
+              disabled={isLoading}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-white/10 rounded transition opacity-0 group-hover:opacity-100"
+              className="p-2 hover:bg-purple-500/20 rounded transition opacity-0 group-hover:opacity-100 disabled:opacity-50"
+              title="Run this step"
             >
-              <RotateCw className="w-4 h-4 text-muted-foreground" />
+              <Play className="w-4 h-4 text-purple-400" />
             </motion.button>
           )}
           {stage.status === 'completed' && (
             <motion.button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRequestApproval()
+              }}
+              disabled={isLoading}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 hover:bg-white/10 rounded transition opacity-0 group-hover:opacity-100"
+              className="p-2 hover:bg-green-500/20 rounded transition opacity-0 group-hover:opacity-100 disabled:opacity-50"
+              title="Request approval"
             >
-              <Eye className="w-4 h-4 text-muted-foreground" />
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
+            </motion.button>
+          )}
+          {stage.status === 'waiting' && (
+            <motion.button
+              onClick={(e) => e.stopPropagation()}
+              whileHover={{ scale: 1.1 }}
+              className="p-2 rounded opacity-0 group-hover:opacity-100"
+              title="Awaiting approval"
+            >
+              <Clock className="w-4 h-4 text-yellow-400 animate-spin" />
             </motion.button>
           )}
 
@@ -127,37 +211,123 @@ export function PipelineStepCard({ stage, isExpanded, onExpand }: PipelineStepCa
             className="border-t border-white/10 bg-white/5"
           >
             <div className="px-6 py-4 space-y-4">
-              {/* Content Preview */}
+              {/* Live Logs */}
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Data</h4>
-                <div className="bg-black/40 rounded p-3 text-xs text-muted-foreground h-24 overflow-y-auto font-mono">
-                  {Object.keys(parsedContent).length > 0 ? (
-                    <pre>{JSON.stringify(parsedContent, null, 2)}</pre>
-                  ) : (
-                    <span>{stage.status === 'completed' ? 'Execution completed' : 'Waiting to execute...'}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Execution Logs</h4>
+                  {['in_progress', 'running'].includes(stage.status) && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      <span className="text-xs text-green-400">Live</span>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-black/60 rounded p-3 text-xs text-gray-300 h-32 overflow-y-auto font-mono border border-white/10">
+                  <div>{new Date().toLocaleTimeString()} - Starting {stage.name}</div>
+                  <div>{parsedContent.logs ? parsedContent.logs : 'Processing...'}</div>
+                  {['in_progress', 'running'].includes(stage.status) && (
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="text-gray-500"
+                    >
+                      ▁ Processing...
+                    </motion.div>
                   )}
                 </div>
               </div>
 
-              {/* Stats */}
-              {Object.keys(parsedContent).length > 0 && (
-                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10">
-                  <div>
+              {/* Execution Metrics */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Execution Metrics</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
+                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.duration || '—'}</p>
+                  </div>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
                     <p className="text-xs text-muted-foreground">Tokens Used</p>
-                    <p className="font-semibold text-white">{parsedContent.tokensUsed || '—'}</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.tokensUsed || '0'}</p>
                   </div>
-                  <div>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
                     <p className="text-xs text-muted-foreground">Cost</p>
-                    <p className="font-semibold text-white">${parsedContent.cost || '0.00'}</p>
+                    <p className="font-semibold text-white text-sm">${parsedContent.cost || '0.00'}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="font-semibold text-white capitalize">{stage.status}</p>
+                  <div className="p-3 bg-white/5 rounded border border-white/10">
+                    <p className="text-xs text-muted-foreground">Completion</p>
+                    <p className="font-semibold text-white text-sm">{parsedContent.completion || '0'}%</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              {['in_progress', 'running', 'pending', 'queued'].includes(stage.status) && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground">Progress</h4>
+                    <span className="text-xs text-gray-400">{parsedContent.completion || 0}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: '0%' }}
+                      animate={{
+                        width: `${parsedContent.completion || 0}%`,
+                      }}
+                      transition={{ type: 'spring', stiffness: 100 }}
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Actions */}
+              {/* Output Data */}
+              {Object.keys(parsedContent).length > 0 && parsedContent.output && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Output Data</h4>
+                  <div className="bg-black/40 rounded p-3 text-xs text-gray-300 max-h-40 overflow-y-auto font-mono border border-white/10">
+                    <pre>{JSON.stringify(parsedContent.output, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Generation Actions */}
+              <div className="pt-2 border-t border-white/10">
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">AI Generation</h4>
+                <div className="flex gap-2">
+                  {['Content Research', 'Outline', 'Keyword Research'].includes(stage.name) && (
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateContent()
+                      }}
+                      disabled={isLoading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500/20 hover:bg-purple-500/30 disabled:opacity-50 text-purple-300 rounded font-medium text-sm transition"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate Content
+                    </motion.button>
+                  )}
+                  {stage.name === 'Image Generation' && (
+                    <motion.button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenerateImage()
+                      }}
+                      disabled={isLoading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 text-blue-300 rounded font-medium text-sm transition"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate Images
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+
+              {/* Approval Actions */}
               {stage.status === 'waiting' && (
                 <div className="flex gap-2 pt-2 border-t border-white/10">
                   <motion.button
