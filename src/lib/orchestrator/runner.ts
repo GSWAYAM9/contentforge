@@ -135,6 +135,8 @@ export class PipelineRunner {
     step.status = 'running'
     step.startedAt = new Date()
 
+    console.log(`[v0] executeStep: Starting ${step.name} (${step.agentName})`)
+
     this.emitEvent({
       type: 'started',
       stepName: step.name,
@@ -145,8 +147,11 @@ export class PipelineRunner {
     try {
       const agent = this.agents.get(step.agentName)
       if (!agent) {
+        console.error(`[v0] executeStep: Agent not found - ${step.agentName}. Available agents:`, Array.from(this.agents.keys()))
         throw new Error(`Agent not found: ${step.agentName}`)
       }
+      
+      console.log(`[v0] executeStep: Found agent ${step.agentName}, executing...`)
 
       const output = await withRetry(
         () => agent.execute(this.context.getContext()),

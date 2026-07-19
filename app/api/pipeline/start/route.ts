@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         tone: tone as any,
         keywords,
         research: {},
-        previousOutputs: new Map(),
+        previousOutputs: {}, // Use plain object instead of Map
         memory: {
           brandVoice,
           audience: targetAudience,
