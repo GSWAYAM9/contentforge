@@ -19,13 +19,23 @@ export abstract class BaseAgent {
     const errors: string[] = []
 
     try {
+      console.log(`[v0-agent] ${this.agentName} execute() called with context:`, {
+        prompt: context.prompt?.substring(0, 50),
+        projectId: context.projectId,
+        keywords: context.keywords,
+        tone: context.tone,
+      })
       logs.push(`[${this.agentName}] Starting execution`)
 
       const prompt = this.buildPrompt(context)
+      console.log(`[v0-agent] ${this.agentName} buildPrompt() returned:`, prompt.substring(0, 100))
+      logs.push(`[${this.agentName}] Built prompt (${prompt.length} chars)`)
+      
       const systemPrompt = getSystemPrompt(this.agentName, context.brandVoice, context.tone)
-
+      console.log(`[v0-agent] ${this.agentName} systemPrompt:`, systemPrompt)
       logs.push(`[${this.agentName}] Calling Claude API`)
 
+      console.log(`[v0-agent] ${this.agentName} calling callClaude()`)
       const response = await callClaude({
         prompt,
         systemPrompt,
@@ -33,6 +43,11 @@ export abstract class BaseAgent {
         temperature: 0.7,
       })
 
+      console.log(`[v0-agent] ${this.agentName} response received:`, {
+        tokens: response.usage.totalTokens,
+        promptTokens: response.usage.promptTokens,
+        completionTokens: response.usage.completionTokens,
+      })
       logs.push(`[${this.agentName}] Received response from Claude`)
 
       const duration = Date.now() - startTime

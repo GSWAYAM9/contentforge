@@ -135,7 +135,9 @@ export class PipelineRunner {
     step.status = 'running'
     step.startedAt = new Date()
 
+    const contextData = this.context.getContext()
     console.log(`[v0] executeStep: Starting ${step.name} (${step.agentName})`)
+    console.log(`[v0] Context: prompt="${contextData.prompt}", keywords=[${contextData.keywords.join(', ')}], tone="${contextData.tone}"`)
 
     this.emitEvent({
       type: 'started',
@@ -153,14 +155,27 @@ export class PipelineRunner {
       
       console.log(`[v0] executeStep: Found agent ${step.agentName}, executing...`)
 
+      const agentContext = this.context.getContext()
+      console.log(`[v0] executeStep: Agent context prepared, calling agent.execute()`)
+      
       const output = await withRetry(
-        () => agent.execute(this.context.getContext()),
+        () => {
+          console.log(`[v0] executeStep: Calling agent.execute() for ${step.agentName}`)
+          return agent.execute(agentContext)
+        },
         undefined,
         (attempt, reason) => {
           console.log(`[v0] Retrying ${step.name} (attempt ${attempt}): ${reason.message}`)
           step.retries = attempt
         }
       )
+
+      console.log(`[v0] executeStep: Agent response received:`, {
+        status: output.status,
+        tokensUsed: output.metadata?.tokensUsed,
+        cost: output.metadata?.estimatedCost,
+        errors: output.errors,
+      })
 
       this.context.addPreviousOutput(step.agentName, output.output)
 
@@ -183,13 +198,18 @@ export class PipelineRunner {
       }
     } catch (error) {
       step.status = 'failed'
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`[v0] executeStep failed: ${step.name} - ${errorMessage}`, error)
+      
       this.emitEvent({
         type: 'failed',
         stepName: step.name,
         timestamp: new Date(),
-        data: { error: error instanceof Error ? error.message : 'Unknown error' },
+        data: { error: errorMessage },
       })
-      throw error
+      
+      // Don't throw - allow pipeline to continue or handle gracefully
+      step.errors = [errorMessage]
     } finally {
       step.completedAt = new Date()
     }

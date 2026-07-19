@@ -28,10 +28,30 @@ async function runPipelineAsync(
       console.log(`[v0] Pipeline event: ${event.type} - ${event.stepName}`)
     })
 
+    // Subscribe to events and update DB
+    let lastUpdateTime = Date.now()
+    runner.subscribe((event) => {
+      // Update database every 5 seconds or on important events
+      const now = Date.now()
+      if (now - lastUpdateTime > 5000 || ['completed', 'failed'].includes(event.type)) {
+        lastUpdateTime = now
+        const currentExecution = runner.getExecution()
+        db.update(pipelineExecutions)
+          .set({
+            status: currentExecution.status as any,
+            totalCost: currentExecution.totalCost,
+            totalTokens: currentExecution.totalTokens,
+            data: currentExecution as any,
+          })
+          .where(eq(pipelineExecutions.id, executionId))
+          .catch(err => console.error('[v0] Failed to update execution during run:', err))
+      }
+    })
+
     // Run the pipeline
     const result = await runner.run()
 
-    // Update database
+    // Final database update
     await db
       .update(pipelineExecutions)
       .set({
