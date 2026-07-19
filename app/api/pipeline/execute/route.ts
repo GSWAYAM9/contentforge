@@ -13,6 +13,13 @@ async function runPipelineAsync(
   projectId: string
 ) {
   try {
+    // Lazy imports to avoid build-time issues
+    const { ExecutionContext } = await import('@/lib/orchestrator/context')
+    const { PipelineRunner } = await import('@/lib/orchestrator/runner')
+    const { db } = await import('@/lib/db')
+    const { pipelineExecutions } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
+
     const context = new ExecutionContext(execution.context)
     const runner = new PipelineRunner(execution, context)
 
@@ -38,15 +45,23 @@ async function runPipelineAsync(
     return result
   } catch (error) {
     console.error('[v0] Pipeline execution error:', error)
-    await db
-      .update(pipelineExecutions)
-      .set({
-        status: 'failed',
-        data: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-        } as any,
-      })
-      .where(eq(pipelineExecutions.id, executionId))
+    try {
+      const { db } = await import('@/lib/db')
+      const { pipelineExecutions } = await import('@/lib/db/schema')
+      const { eq } = await import('drizzle-orm')
+      
+      await db
+        .update(pipelineExecutions)
+        .set({
+          status: 'failed',
+          data: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          } as any,
+        })
+        .where(eq(pipelineExecutions.id, executionId))
+    } catch (dbError) {
+      console.error('[v0] Failed to update error status:', dbError)
+    }
   }
 }
 
