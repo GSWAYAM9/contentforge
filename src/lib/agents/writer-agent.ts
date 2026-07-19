@@ -9,7 +9,7 @@ export class WriterAgent extends BaseAgent {
 
   buildPrompt(context: AgentExecutionContext): string {
     const basePrompt = getPrompt('writer')
-    const outline = context.previousOutputs?.get('Outline Agent') || {}
+    const outline = context.previousOutputs?.get('Outline') || {}
     const research = context.previousOutputs?.get('Research') || {}
 
     return `${basePrompt}
