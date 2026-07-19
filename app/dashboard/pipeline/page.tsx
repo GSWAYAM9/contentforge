@@ -1,7 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Play, Pause, RotateCw, AlertCircle, CheckCircle2, Clock, Zap } from 'lucide-react'
+import { Play, Pause, RotateCw, AlertCircle, CheckCircle2, Clock, Zap, Plus } from 'lucide-react'
+import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { GlassCard } from '@/components/shared/cards/glass-card'
 import { AnimatedButton } from '@/components/ui/animated-button'
@@ -123,9 +124,11 @@ export default function PipelinePage() {
               Monitor and control content generation pipelines
             </p>
           </div>
-          <AnimatedButton variant="primary" size="lg" icon={<Play className="h-5 w-5" />}>
-            New Pipeline
-          </AnimatedButton>
+          <Link href="/dashboard/projects">
+            <AnimatedButton variant="primary" size="lg" icon={<Plus className="h-5 w-5" />}>
+              New Pipeline
+            </AnimatedButton>
+          </Link>
         </div>
 
         {/* Stats */}
