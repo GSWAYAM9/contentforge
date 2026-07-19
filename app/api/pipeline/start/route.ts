@@ -48,8 +48,9 @@ export async function POST(request: NextRequest) {
       
       // Phase 5: Publishing & Learning
       { id: 'step_13', name: 'QA', agentName: 'QA', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
-      { id: 'step_14', name: 'Publish', agentName: 'Publish', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
-      { id: 'step_15', name: 'Learning', agentName: 'Learning', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
+      { id: 'step_14', name: 'Image Generator', agentName: 'Image Generator', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
+      { id: 'step_15', name: 'Publish', agentName: 'Publish', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
+      { id: 'step_16', name: 'Learning', agentName: 'Learning', status: 'pending', retries: 0, maxRetries: 3, phase: 'finalization' },
     ]
 
     const execution: any = {

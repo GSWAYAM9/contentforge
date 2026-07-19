@@ -16,6 +16,7 @@ import { LinkedInAgent } from '../agents/linkedin-agent'
 import { PublishAgent } from '../agents/publish-agent'
 import { QAAgent } from '../agents/qa-agent'
 import { LearningAgent } from '../agents/learning-agent'
+import { ImageGenerationAgent } from '../agents/image-generation-agent'
 
 export type PipelineEventListener = (event: PipelineEvent) => void
 
@@ -56,6 +57,9 @@ export class PipelineRunner {
     this.agents.set('QA', new QAAgent())
     this.agents.set('Publish', new PublishAgent())
     this.agents.set('Learning', new LearningAgent())
+    
+    // Image Generation (runs in parallel with content creation)
+    this.agents.set('Image Generator', new ImageGenerationAgent())
   }
 
   subscribe(listener: PipelineEventListener): void {
