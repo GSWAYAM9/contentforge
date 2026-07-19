@@ -23,6 +23,14 @@ export interface ClaudeResponse {
 
 export async function callClaude(request: ClaudeRequest): Promise<ClaudeResponse> {
   try {
+    console.log('[v0-anthropic] callClaude() called')
+    console.log('[v0-anthropic] API Key exists:', !!process.env.ANTHROPIC_API_KEY)
+    console.log('[v0-anthropic] Request:', {
+      promptLength: request.prompt?.length,
+      systemPromptLength: request.systemPrompt?.length,
+      maxTokens: request.maxTokens,
+    })
+
     const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: request.maxTokens || 2048,

@@ -155,14 +155,27 @@ export class PipelineRunner {
       
       console.log(`[v0] executeStep: Found agent ${step.agentName}, executing...`)
 
+      const agentContext = this.context.getContext()
+      console.log(`[v0] executeStep: Agent context prepared, calling agent.execute()`)
+      
       const output = await withRetry(
-        () => agent.execute(this.context.getContext()),
+        () => {
+          console.log(`[v0] executeStep: Calling agent.execute() for ${step.agentName}`)
+          return agent.execute(agentContext)
+        },
         undefined,
         (attempt, reason) => {
           console.log(`[v0] Retrying ${step.name} (attempt ${attempt}): ${reason.message}`)
           step.retries = attempt
         }
       )
+
+      console.log(`[v0] executeStep: Agent response received:`, {
+        status: output.status,
+        tokensUsed: output.metadata?.tokensUsed,
+        cost: output.metadata?.estimatedCost,
+        errors: output.errors,
+      })
 
       this.context.addPreviousOutput(step.agentName, output.output)
 
