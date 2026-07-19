@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { pipelineExecutions } from '@/lib/db/schema'
-import { PipelineExecution, PipelineStep } from '@/lib/types/ai'
-import { ExecutionContext } from '@/lib/orchestrator/context'
-import { PipelineRunner } from '@/lib/orchestrator/runner'
 
 export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,10 +18,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Lazy import to avoid build-time db access
+    const { db } = await import('@/lib/db')
+    const { pipelineExecutions } = await import('@/lib/db/schema')
+
     // Create pipeline execution
     const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-    const steps: PipelineStep[] = [
+    const steps: any[] = [
       { id: 'step_1', name: 'Keyword Research', agentName: 'Keyword Research', status: 'pending', retries: 0, maxRetries: 3 },
       { id: 'step_2', name: 'Research', agentName: 'Research', status: 'pending', retries: 0, maxRetries: 3 },
       { id: 'step_3', name: 'Outline', agentName: 'Outline', status: 'pending', retries: 0, maxRetries: 3 },
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       { id: 'step_5', name: 'SEO', agentName: 'SEO', status: 'pending', retries: 0, maxRetries: 3 },
     ]
 
-    const execution: PipelineExecution = {
+    const execution: any = {
       id: executionId,
       projectId,
       status: 'running',

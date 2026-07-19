@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { pipelineExecutions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { ExecutionContext } from '@/lib/orchestrator/context'
-import { PipelineRunner } from '@/lib/orchestrator/runner'
 import { PipelineExecution } from '@/lib/types/ai'
+
+export const dynamic = 'force-dynamic'
 
 export const maxDuration = 300
 

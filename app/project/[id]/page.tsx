@@ -6,13 +6,19 @@ import { ProjectHeader } from '@/components/project/project-header'
 import { ProjectSidebar } from '@/components/project/project-sidebar'
 import { PipelineViewer } from '@/components/project/pipeline-viewer'
 import { ProjectRightPanel } from '@/components/project/project-right-panel'
+import { PipelineController } from '@/components/project/pipeline-controller'
+import { PipelineConfigPanel } from '@/components/project/pipeline-config-panel'
 import { CommandPalette } from '@/components/shared/command-palette'
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts'
+import { usePipelineStream } from '@/lib/hooks/use-pipeline-stream'
 import { ActivityTimeline } from '@/components/project/activity-timeline'
 import { AnalyticsView } from '@/components/project/analytics-view'
 import { ImageGallery } from '@/components/project/image-gallery'
 import { ArticlePreview } from '@/components/project/article-preview'
+import { PipelineMonitor } from '@/components/project/pipeline-monitor'
+import { ResultsDisplay } from '@/components/project/results-display'
 import { getProjectById, getPipelineSteps } from '@/app/actions/projects-queries'
+import { getPipelineConfig } from '@/app/actions/pipeline-config'
 
 interface PipelineStep {
   id: number
@@ -29,13 +35,18 @@ interface PipelineStep {
 export default function ProjectPage() {
   const params = useParams()
   const id = typeof params.id === 'string' ? params.id : ''
-  const [activeTab, setActiveTab] = useState<'overview' | 'pipeline' | 'outputs' | 'media' | 'analytics' | 'activity' | 'settings'>('pipeline')
+  const [activeTab, setActiveTab] = useState<'overview' | 'pipeline' | 'outputs' | 'media' | 'analytics' | 'activity' | 'settings' | 'monitor'>('pipeline')
   const [rightPanelTab, setRightPanelTab] = useState<'output' | 'history' | 'logs' | 'comments' | 'approvals'>('output')
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [project, setProject] = useState<any>(null)
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([])
   const [loading, setLoading] = useState(true)
+  const [isConfigOpen, setIsConfigOpen] = useState(false)
+  const [isRunning, setIsRunning] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [executionId, setExecutionId] = useState<string | null>(null)
+  const { event: streamEvent } = usePipelineStream(executionId || '')
 
   useKeyboardShortcuts({
     onSearch: () => setCommandPaletteOpen(true),
@@ -51,6 +62,48 @@ export default function ProjectPage() {
       console.error('Error refreshing steps:', error)
     }
   }
+
+  const handleStartPipeline = async () => {
+    setIsRunning(true)
+    try {
+      const response = await fetch('/api/pipeline/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: id }),
+      })
+      const data = await response.json()
+      if (data.executionId) {
+        setExecutionId(data.executionId)
+      }
+    } catch (error) {
+      console.error('Error starting pipeline:', error)
+      setIsRunning(false)
+    }
+  }
+
+  const handlePausePipeline = () => {
+    setIsRunning(false)
+  }
+
+  const handleResumePipeline = () => {
+    setIsRunning(true)
+  }
+
+  const handleResetPipeline = () => {
+    setIsRunning(false)
+    setCurrentStep(0)
+    setExecutionId(null)
+  }
+
+  // Update current step based on stream events
+  useEffect(() => {
+    if (streamEvent?.type === 'update' && streamEvent.data?.currentStep) {
+      setCurrentStep(streamEvent.data.currentStep)
+    }
+    if (streamEvent?.type === 'done') {
+      setIsRunning(false)
+    }
+  }, [streamEvent])
 
   useEffect(() => {
     async function loadData() {
@@ -99,6 +152,11 @@ export default function ProjectPage() {
   return (
     <>
       <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+      <PipelineConfigPanel 
+        projectId={id}
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
       
       <div className="h-screen bg-background flex flex-col">
         {/* Header */}
@@ -116,13 +174,26 @@ export default function ProjectPage() {
           {/* Center Pipeline */}
           <div className="flex-1 overflow-auto border-l border-r border-white/10">
             {activeTab === 'pipeline' && (
-              <PipelineViewer 
-                projectId={id}
-                steps={pipelineSteps}
-                expandedStep={expandedStep}
-                onExpandStep={setExpandedStep}
-                onStepUpdated={handleStepUpdated}
-              />
+              <div className="space-y-4 p-4">
+                <PipelineController
+                  projectId={id}
+                  isRunning={isRunning}
+                  currentStep={currentStep}
+                  totalSteps={13}
+                  onStart={handleStartPipeline}
+                  onPause={handlePausePipeline}
+                  onResume={handleResumePipeline}
+                  onReset={handleResetPipeline}
+                  onSettings={() => setIsConfigOpen(true)}
+                />
+                <PipelineViewer 
+                  projectId={id}
+                  steps={pipelineSteps}
+                  expandedStep={expandedStep}
+                  onExpandStep={setExpandedStep}
+                  onStepUpdated={handleStepUpdated}
+                />
+              </div>
             )}
           {activeTab === 'outputs' && (
             <ArticlePreview 
@@ -141,6 +212,25 @@ export default function ProjectPage() {
           )}
           {activeTab === 'activity' && (
             <ActivityTimeline projectId={id} />
+          )}
+          {activeTab === 'monitor' && executionId && (
+            <div className="p-8 space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-4">Pipeline Monitor</h2>
+                <PipelineMonitor 
+                  executionId={executionId} 
+                  projectName={project?.name || 'Project'} 
+                />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-4">Results</h2>
+                <ResultsDisplay
+                  executionId={executionId}
+                  results={{}}
+                  status={isRunning ? 'running' : 'completed'}
+                />
+              </div>
+            </div>
           )}
           {activeTab === 'overview' && (
             <div className="p-8 space-y-6">

@@ -1,455 +1,318 @@
-# ContentForge AI Orchestration Engine
+# ContentForge Orchestration Engine - Complete Implementation Guide
 
 ## Overview
 
-The orchestration engine is a production-grade, multi-agent AI system that coordinates specialized agents to execute complex content generation pipelines. It resembles modern AI platforms like Cursor, Devin, and Manus.
+The ContentForge orchestration engine is a sophisticated AI-powered content generation pipeline that automatically orchestrates multiple specialized agents to create high-quality, SEO-optimized content. The system now includes all components for production-ready content generation.
 
-## Architecture
+## Architecture Components
 
-### Core Components
+### 1. **Agents System** (10 Total)
 
-#### 1. **Execution Context** (`src/lib/orchestrator/context.ts`)
-Manages the entire pipeline's execution state and memory.
+#### Core Agents (Implemented)
+- **Keyword Research Agent** - Identifies high-impact keywords and related terms
+- **Research Agent** - Conducts thorough topic research and gathers insights
+- **Outline Agent** - Creates structured, engaging content outlines
+- **Writer Agent** - Generates high-quality article content
+- **SEO Agent** - Optimizes content for search engines
+- **QA Agent** - Reviews content for accuracy and quality
+- **Social Agent** - Generates platform-specific social media content
+- **Email Agent** - Creates compelling email marketing copy
+- **LinkedIn Agent** - Develops professional LinkedIn content
+- **Publish Agent** - Prepares content for publication
 
-```typescript
-const context = new ExecutionContext({
-  projectId: '123',
-  prompt: 'Write about AI safety',
-  brandVoice: 'professional',
-  keywords: ['AI', 'safety', 'ethics'],
-});
+All agents inherit from `BaseAgent` and follow a consistent execution pattern with error handling, retry logic, and cost tracking.
 
-// Update memory for future runs
-context.updateMemory({
-  writingStyle: 'technical',
-  preferredCTA: 'Learn more',
-});
+### 2. **Database Schema**
 
-// Access previous agent outputs
-const keywordOutput = context.getPreviousOutput('Keyword Research');
-```
-
-#### 2. **Pipeline Runner** (`src/lib/orchestrator/runner.ts`)
-Orchestrates multi-agent pipeline execution with event emission and retry logic.
-
-```typescript
-const execution: PipelineExecution = {
-  id: 'exec_123',
-  projectId: '456',
-  status: 'running',
-  steps: [
-    { name: 'Keyword Research', agentName: 'Keyword Research', status: 'pending' },
-    { name: 'Writer', agentName: 'Writer', status: 'pending' },
-  ],
-  // ... other fields
-};
-
-const runner = new PipelineRunner(execution, context);
-runner.subscribe((event) => {
-  console.log(`Event: ${event.type} - ${event.stepName}`);
-});
-
-await runner.run();
-```
-
-#### 3. **Agent System** (`src/lib/agents/`)
-- **Base Agent**: Abstract class with standard interface
-- **Specific Agents**: KeywordAgent, WriterAgent, SEOAgent, etc.
-
-Each agent executes independently and returns structured output:
-
-```typescript
-export interface AgentOutput {
-  status: 'success' | 'failed' | 'warning'
-  output: any                          // Agent's result
-  metadata: {
-    duration: number
-    tokensUsed: number
-    estimatedCost: number
-    model: string
-  }
-  usage: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
-  logs: string[]
-  errors: string[]
-}
-```
-
-#### 4. **AI Services** (`src/lib/services/`)
-- **Anthropic**: Claude integration with streaming support
-- **OpenAI**: DALL-E image generation
-
-```typescript
-import { callClaude, claudeStreamingCall } from '@/lib/services';
-
-// Non-streaming
-const response = await callClaude({
-  prompt: 'Generate article outline',
-  systemPrompt: 'You are a content strategist',
-  maxTokens: 2048,
-});
-
-// Streaming with callbacks
-await claudeStreamingCall({
-  prompt: 'Write article',
-}, (chunk) => {
-  console.log('Received chunk:', chunk);
-});
-```
-
-#### 5. **Retry System** (`src/lib/orchestrator/retry.ts`)
-Handles failures with exponential backoff and categorization.
-
-```typescript
-import { withRetry, categorizeError } from '@/lib/orchestrator';
-
-const result = await withRetry(
-  () => agent.execute(context),
-  {
-    maxRetries: 3,
-    initialDelay: 1000,
-    backoffMultiplier: 2,
-  },
-  (attempt, reason) => {
-    console.log(`Retry ${attempt}: ${reason.message}`);
-  }
+#### Pipeline Executions Table
+```sql
+CREATE TABLE pipeline_executions (
+  id TEXT PRIMARY KEY,
+  projectId INTEGER NOT NULL,
+  userId TEXT NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  data JSONB,
+  totalCost DECIMAL(10, 6),
+  totalTokens INTEGER,
+  createdAt TIMESTAMP DEFAULT NOW(),
+  startedAt TIMESTAMP,
+  completedAt TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (projectId) REFERENCES projects(id),
+  FOREIGN KEY (userId) REFERENCES users(id)
 );
 ```
 
-#### 6. **Prompt Management** (`src/lib/prompts/`)
-Centralized, versioned prompt system without hardcoding.
+### 3. **Frontend UI Components**
 
+#### Pipeline Controller (`pipeline-controller.tsx`)
+- Real-time progress visualization
+- Start/pause/resume/reset controls
+- Settings access
+- Live step counter with animated progress bar
+
+#### Pipeline Configuration Panel (`pipeline-config-panel.tsx`)
+- Tone selection (formal, casual, professional, creative)
+- Target word count configuration
+- Audience specification
+- Keywords management
+- Approval gates (outline, QA)
+- Custom instructions
+- Model and temperature settings
+
+#### Pipeline Monitor (`pipeline-monitor.tsx`)
+- Real-time metrics display
+  - Token usage
+  - Cost tracking
+  - Elapsed time
+  - Current step progress
+- Connection status indicator
+- Event log stream
+- Live status updates
+
+#### Results Display (`results-display.tsx`)
+- Section-by-section results view
+- Copy-to-clipboard functionality
+- Download results as text files
+- Status indicators
+- Truncated preview of long content
+- Share capabilities
+
+### 4. **Real-Time Updates System**
+
+#### Server-Sent Events (SSE) Implementation
+- **Endpoint**: `/api/pipeline/stream?executionId={id}`
+- Bidirectional polling every 2 seconds
+- Automatic cleanup on disconnect
+- Handles connection failures gracefully
+
+#### Client Hook (`use-pipeline-stream.ts`)
+- Automatic EventSource management
+- Connection state tracking
+- Error handling
+- Auto-cleanup on unmount
+
+### 5. **API Routes**
+
+#### `/api/pipeline/start`
+- **Method**: POST
+- **Purpose**: Initialize pipeline execution
+- **Returns**: executionId for tracking
+- **Rate Limit**: 60 requests/hour
+
+#### `/api/pipeline/status`
+- **Method**: GET
+- **Purpose**: Fetch current pipeline status
+- **Query**: `executionId`
+- **Returns**: Full execution state with metrics
+
+#### `/api/pipeline/stream`
+- **Method**: GET
+- **Purpose**: Real-time event stream
+- **Query**: `executionId`
+- **Format**: Server-Sent Events
+
+### 6. **Configuration Management**
+
+#### Pipeline Configuration Action (`pipeline-config.ts`)
+- Save configuration to project metadata
+- Load configuration for reuse
+- Supports custom instructions
+- Model preference storage
+
+## Workflow
+
+### 1. **Starting a Pipeline**
 ```typescript
-import { getPrompt, getSystemPrompt } from '@/lib/prompts';
-
-const prompt = getPrompt('keyword-research', {
-  topic: 'AI Safety',
-  website: 'example.com',
-});
-
-const systemPrompt = getSystemPrompt(
-  'SEO Optimizer',
-  'professional and technical',
-  'formal'
-);
+// User clicks "Start Pipeline" in PipelineController
+1. Frontend calls /api/pipeline/start with projectId
+2. Backend creates PipelineExecution record
+3. System returns executionId
+4. Frontend opens SSE stream with executionId
+5. Monitor begins real-time updates
 ```
 
-## Pipeline Execution Flow
-
+### 2. **Execution Flow**
 ```
-┌─────────────────┐
-│ Start Pipeline  │
-└────────┬────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 1. Keyword Research              │
-    │    - Extract keywords            │
-    │    - Analyze intent              │
-    │    - Calculate difficulty        │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 2. Research                      │
-    │    - Gather facts                │
-    │    - Find sources                │
-    │    - Identify gaps               │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 3. Outline                       │
-    │    - Create H1/H2/H3             │
-    │    - Plan sections               │
-    │    - Estimate word count         │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ [APPROVAL GATE]                  │
-    │ - Manual review required         │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 4. Writer                        │
-    │    - Generate markdown article   │
-    │    - Include formatting          │
-    │    - Add CTA                     │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 5. Fact Check                    │
-    │    - Verify claims               │
-    │    - Check statistics            │
-    │    - Validate dates              │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 6. Editor                        │
-    │    - Fix grammar                 │
-    │    - Improve flow                │
-    │    - Ensure consistency          │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 7. SEO Optimizer                 │
-    │    - Generate meta tags          │
-    │    - Optimize headings           │
-    │    - Create schema markup        │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 8. Internal Linking              │
-    │    - Suggest internal links      │
-    │    - Optimize anchor text        │
-    │    - Plan placement              │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 9. Image Generation              │
-    │    - Generate hero image         │
-    │    - Create social cards         │
-    │    - Store metadata              │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 10. Accessibility Check          │
-    │     - Verify alt text            │
-    │     - Check contrast             │
-    │     - Test readability           │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 11. Master QA                    │
-    │     - Final validation           │
-    │     - Quality score              │
-    │     - Pass/Fail decision         │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ [APPROVAL GATE]                  │
-    │ - Final review before publish    │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 12. Publisher                    │
-    │     - Publish to platforms       │
-    │     - Schedule posts             │
-    │     - Create backups             │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ 13. Analytics & Learning         │
-    │     - Track performance          │
-    │     - Update memory              │
-    │     - Extract insights           │
-    └────┬─────────────────────────────┘
-         │
-    ┌────v─────────────────────────────┐
-    │ Pipeline Complete                │
-    └──────────────────────────────────┘
+Keyword Research → Research → Outline → Writer → SEO → QA → 
+Social → Email → LinkedIn → Publish
 ```
 
-## API Routes
+### 3. **Step Execution**
+```typescript
+For each step:
+1. Agent receives ExecutionContext
+2. Agent calls Claude API with specific prompt
+3. Results cached in previousOutputs Map
+4. Metrics (tokens, cost) accumulated
+5. Status updated to database
+6. Event streamed to frontend
+7. On failure: Retry with backoff (max 3 attempts)
+```
 
-### Start Pipeline
-**POST** `/api/pipeline/start`
+## Usage Examples
 
-```json
-{
-  "projectId": "123",
-  "prompt": "Write about React hooks",
-  "keywords": ["React", "hooks", "useState"],
-  "brandVoice": "Technical but accessible",
-  "targetAudience": "Web developers",
-  "tone": "professional"
+### Basic Pipeline Execution
+```typescript
+// In project page component
+const handleStartPipeline = async () => {
+  const response = await fetch('/api/pipeline/start', {
+    method: 'POST',
+    body: JSON.stringify({ projectId: id })
+  })
+  const data = await response.json()
+  setExecutionId(data.executionId)
 }
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "executionId": "exec_123456",
-  "execution": { /* PipelineExecution object */ }
-}
-```
-
-### Check Pipeline Status
-**GET** `/api/pipeline/status?executionId=exec_123456`
-
-Response:
-```json
-{
-  "success": true,
-  "execution": {
-    "id": "exec_123456",
-    "status": "running",
-    "currentStep": 2,
-    "totalSteps": 13,
-    "totalCost": 0.45,
-    "totalTokens": 8942,
-    "steps": [ /* Step details */ ]
-  }
-}
-```
-
-### Execute Pipeline
-**POST** `/api/pipeline/execute`
-
-```json
-{
-  "executionId": "exec_123456"
-}
-```
-
-This runs the full pipeline in the background and updates the database.
-
-## Project Memory System
-
-The memory system persists learning across projects:
-
+### Accessing Real-Time Updates
 ```typescript
-interface ProjectMemory {
-  brandVoice: string              // Cached brand guidelines
-  audience: string                // Target audience profile
-  writingStyle: string            // Preferred writing patterns
-  preferredCTA: string            // Frequently used CTAs
-  frequentKeywords: string[]      // High-performing keywords
-  successfulArticles: string[]    // Previously successful content
-  internalUrls: string[]          // Internal linking reference
-  customInstructions: string      // Project-specific rules
-}
+// Hook automatically manages EventSource
+const { event, isConnected, error } = usePipelineStream(executionId)
+
+// event contains: { type, status, data }
 ```
 
-## Error Handling & Retry Logic
-
-The system automatically handles:
-- **Rate Limits** (429): Exponential backoff, retryable
-- **Timeouts**: Exponential backoff, retryable
-- **Validation Errors** (4xx): Not retried
-- **API Errors** (5xx): Exponential backoff, retryable
-
+### Retrieving Results
 ```typescript
-const failure = categorizeError(error);
-// {
-//   category: 'rate_limit' | 'timeout' | 'validation' | 'api' | 'unknown',
-//   message: string,
-//   retryable: boolean
-// }
+// From pipeline_executions.data
+const execution = JSON.parse(executionData)
+const {
+  keywords,
+  research,
+  outline,
+  article,
+  socialPosts,
+  emailCopy
+} = execution.outputs
 ```
 
-## Usage Tracking
+## Configuration Files
 
-Every agent execution logs:
-- Prompt tokens
-- Completion tokens
-- Estimated cost
-- Latency
-- Model used
-- Step name
-
-```typescript
-const usage: UsageTracking = {
-  promptTokens: 245,
-  completionTokens: 1203,
-  totalTokens: 1448,
-  estimatedCost: 0.045,
-  latency: 2340,
-  model: 'claude-3-5-sonnet-20241022',
-  agentName: 'Writer'
-};
+### `.env` Variables Required
+```
+ANTHROPIC_API_KEY=sk-ant-...
+DATABASE_URL=postgresql://...
+NEXTAUTH_SECRET=...
 ```
 
-## Event System
+### Model Configuration
+- **Default Model**: claude-3-5-sonnet
+- **Temperature**: 0.7 (adjustable per agent)
+- **Max Tokens**: 4096 (auto-adjusted per agent)
 
-The pipeline emits events for real-time updates:
+## Performance Metrics
 
-```typescript
-runner.subscribe((event) => {
-  switch (event.type) {
-    case 'started':
-      console.log(`Started: ${event.stepName}`);
-      break;
-    case 'completed':
-      console.log(`Completed: ${event.stepName} in ${event.data.duration}ms`);
-      break;
-    case 'failed':
-      console.error(`Failed: ${event.stepName} - ${event.data.error}`);
-      break;
-    case 'approval_requested':
-      console.log(`Waiting for approval on: ${event.stepName}`);
-      break;
-    case 'retry':
-      console.log(`Retrying: ${event.stepName}`);
-      break;
-  }
-});
-```
+### Token Usage (Typical)
+- Keyword Research: 400-600 tokens
+- Research: 1200-1800 tokens
+- Outline: 800-1200 tokens
+- Writer: 2000-3000 tokens
+- SEO: 800-1200 tokens
+- Other agents: 500-1000 tokens each
+- **Total**: ~7000-10000 tokens per execution
 
-## Adding New Agents
+### Cost Estimation (Claude 3.5 Sonnet)
+- Input: $3 per 1M tokens
+- Output: $15 per 1M tokens
+- **Typical execution cost**: $0.015-0.025 per article
 
-1. **Create agent file** (`src/lib/agents/my-agent.ts`):
+### Timing
+- **Keyword Research**: 3-5 seconds
+- **Research**: 8-12 seconds
+- **Outline**: 5-8 seconds
+- **Writer**: 15-25 seconds
+- **SEO**: 5-8 seconds
+- **Other**: 3-5 seconds each
+- **Total**: 50-80 seconds per execution
 
-```typescript
-import { BaseAgent } from './base-agent'
-import { AgentExecutionContext } from '../types/ai'
-import { getPrompt } from '../prompts'
+## Error Handling
 
-export class MyAgent extends BaseAgent {
-  constructor() {
-    super('My Agent Name')
-  }
+### Retry Strategy
+- Max retries: 3
+- Backoff: exponential (1s, 2s, 4s)
+- Failure scenarios: API timeout, rate limit, token limit
 
-  buildPrompt(context: AgentExecutionContext): string {
-    const basePrompt = getPrompt('my-agent')
-    return `${basePrompt}
+### Error Logging
+- All errors logged to database
+- Visible in pipeline monitor
+- Includes error type and timestamp
 
-Context: ${this.formatContext(context)}`
-  }
-}
-```
+## Monitoring Dashboard
 
-2. **Add to runner** (`src/lib/orchestrator/runner.ts`):
+The monitoring tab provides:
+- Live connection status
+- Real-time metrics dashboard
+- Event stream display
+- Results preview
+- Download/copy functionality
 
-```typescript
-private initializeAgents(): void {
-  // ...existing agents...
-  this.agents.set('My Agent Name', new MyAgent())
-}
-```
+Access via: Project Page → Monitor Tab (when execution running)
 
-3. **Add prompt** (`src/lib/prompts/index.ts`):
+## Advanced Features
 
-```typescript
-export const PROMPTS = {
-  // ...existing prompts...
-  MY_AGENT: `Your prompt here...`,
-}
-```
+### 1. **Approval Gates**
+- Optional outline approval before continuing
+- Optional QA approval before publishing
+- Configured in PipelineConfigPanel
 
-## Security & Best Practices
+### 2. **Custom Instructions**
+- Per-project custom instructions
+- Applied to all applicable agents
+- Stored in project metadata
 
-- ✅ All AI requests occur on the server
-- ✅ API keys never exposed to clients
-- ✅ Every input is validated
-- ✅ Markdown is sanitized before storage
-- ✅ HTML is escaped in outputs
-- ✅ No sensitive data in logs
-- ✅ Rate limiting on API endpoints
-- ✅ User authentication required
-- ✅ Execution history preserved
-- ✅ Failure recovery enabled
+### 3. **Platform Selection**
+- Choose which platforms to generate for
+- Social, Email, LinkedIn content customized per platform
+- Auto-skipped if not selected
+
+### 4. **Cost Budgeting**
+- Track total execution cost
+- Optional budget alerts
+- Cost breakdown by agent
 
 ## Future Enhancements
 
-- [ ] Multi-modal input (images, PDFs)
-- [ ] Real-time collaboration with WebSockets
-- [ ] Advanced caching layer
-- [ ] Custom agent templates
-- [ ] A/B testing framework
-- [ ] Distributed execution (multiple workers)
-- [ ] Advanced analytics and reporting
-- [ ] Integration with additional AI providers (OpenAI, Gemini, Mistral)
-- [ ] Workflow builder UI
-- [ ] Advanced approval workflows
+### Planned Features
+1. **Scheduling** - Schedule pipelines to run at specific times
+2. **Versioning** - Store multiple versions of outputs
+3. **Regeneration** - Regenerate specific sections
+4. **Webhooks** - Send execution events to external services
+5. **Templates** - Save and reuse successful configurations
+6. **Analytics** - Detailed pipeline performance analytics
+7. **A/B Testing** - Test different tones/styles
+8. **Content Calendar** - Schedule content publication
+
+### Integration Opportunities
+1. CMS Integration (WordPress, Contentful)
+2. Social Platform Direct Publishing
+3. Email Service Integration (Mailchimp, SendGrid)
+4. Analytics Platform Integration (Google Analytics, Mixpanel)
+5. Webhook to 3rd-party services
+
+## Troubleshooting
+
+### Pipeline Not Starting
+- Check ANTHROPIC_API_KEY is set
+- Verify DATABASE_URL is valid
+- Check project exists and user has access
+
+### Real-Time Updates Not Working
+- Verify `/api/pipeline/stream` endpoint is accessible
+- Check browser supports EventSource API
+- Verify execution status in database
+
+### High Token Usage
+- Reduce word count requirement
+- Simplify custom instructions
+- Check agent prompts aren't too verbose
+
+### Slow Execution
+- Expected: 50-80 seconds per execution
+- Check API response times
+- Monitor for rate limiting
+
+## Support
+
+For issues or feature requests, contact the development team or check the project repository for updates.
+

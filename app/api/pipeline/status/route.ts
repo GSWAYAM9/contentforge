@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { pipelineExecutions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +16,11 @@ export async function GET(request: NextRequest) {
     if (!executionId) {
       return NextResponse.json({ error: 'Missing executionId' }, { status: 400 })
     }
+
+    // Lazy import to avoid build-time db access
+    const { db } = await import('@/lib/db')
+    const { pipelineExecutions } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
 
     // Get execution from database
     const result = await db

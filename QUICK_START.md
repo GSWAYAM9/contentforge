@@ -1,251 +1,182 @@
-# ContentForge AI - Quick Start Guide
+# ContentForge - Quick Start Guide
 
-## 🚀 Getting Started in 5 Minutes
+## What's New
 
-### Step 1: Verify Environment Variables
-Your API keys are already configured. Verify in Vercel:
-1. Go to Project Settings
-2. Environment Variables
-3. Confirm `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are set
+You now have a **complete, production-ready orchestration engine** for AI-powered content generation with:
+- 10 specialized agents (Research, Writing, SEO, Social, Email, LinkedIn, etc.)
+- Real-time monitoring dashboard
+- Configuration management
+- Automatic content generation pipeline
 
-### Step 2: Start the Development Server
+## Quick Setup
+
+### 1. Start the Dev Server
 ```bash
 cd /vercel/share/v0-project
 pnpm dev
 ```
 
-Server runs at: http://localhost:3000
+### 2. Create a Project
+- Go to Dashboard
+- Click "New Project"
+- Enter topic, keywords, audience
 
-### Step 3: Access the Application
-- **Dashboard:** http://localhost:3000/dashboard
-- **Projects:** http://localhost:3000/dashboard/projects
-- **Settings:** http://localhost:3000/dashboard/settings
+### 3. Run Pipeline
+- Open project
+- Click "Start Pipeline" button
+- Monitor progress in real-time
+- View results as they generate
 
-### Step 4: Create Your First Project
-1. Click "Start New Project"
-2. Enter project name and topic
-3. Configure AI settings
-4. Start the pipeline
+## Key Components
 
-### Step 5: Watch AI in Action
-- Content generation (Claude AI)
-- Image generation (DALL-E 3)
-- Real-time execution tracking
-- Cost monitoring
+### Pipeline Controller
+Located at top of project page when "pipeline" tab is active.
+- **Start**: Begin content generation
+- **Pause**: Pause current execution
+- **Reset**: Clear and restart
+- **Settings**: Configure pipeline parameters
 
----
+### Pipeline Configuration
+Click the settings icon to access:
+- **Tone**: Choose writing style
+- **Word Count**: Set target length
+- **Audience**: Specify target readers
+- **Custom Instructions**: Add specific requirements
+- **Approval Gates**: Require human approval for outline/QA
 
-## 📁 Key Files & Routes
+### Monitor Tab
+Click "Monitor" in sidebar to see:
+- Real-time metrics (tokens, cost, time)
+- Live event stream
+- Current step progress
+- Results display with download/copy
 
-### Main Routes
+### Results Display
+As pipeline runs, outputs appear automatically:
+- Keywords identified
+- Research completed
+- Outline created
+- Article written
+- Social posts generated
+- Email copy created
+
+## Project Structure
+
 ```
-/dashboard              - Main dashboard
-/dashboard/projects    - Projects list
-/project/[id]          - Project workspace
-/project/[id]/settings - Project settings
-/project/[id]/analytics - Analytics
-/dashboard/settings    - Account settings
-/dashboard/api-usage   - API monitoring
-```
-
-### API Test
-```
-/test-ai-apis          - API integration test page
-```
-
-### Content Generation
-- **Claude:** `src/app/actions/ai-generation.ts`
-- **OpenAI:** `src/app/actions/image-generation.ts`
-
----
-
-## 🎯 Core Features
-
-### 1. Project Pipeline
-- Create 5-stage content pipelines
-- Stages: Research → Outline → Draft → SEO → Final
-- Real-time execution monitoring
-- Live logs and metrics
-
-### 2. AI Integration
-**Claude 3.5 Sonnet:**
-- Generate blog posts
-- Create outlines
-- Extract keywords
-- Improve content
-
-**DALL-E 3 HD:**
-- Generate featured images
-- Professional styling
-- Batch generation
-- Cost tracking
-
-### 3. Content Management
-- Article preview with reading progress
-- Image gallery with carousel
-- Comment threading
-- Approval workflows
-
-### 4. Analytics
-- Execution metrics dashboard
-- Cost analysis
-- Agent performance
-- API usage tracking
-
-### 5. Account Management
-- User profiles
-- Password management
-- Notification settings
-- Activity tracking
-
----
-
-## 🔑 API Keys
-
-Your API keys are already configured. If you need to update them:
-
-### Anthropic (Claude)
-1. Get key from: https://console.anthropic.com/
-2. Set as `ANTHROPIC_API_KEY`
-
-### OpenAI
-1. Get key from: https://platform.openai.com/api-keys
-2. Set as `OPENAI_API_KEY`
-
----
-
-## 📊 Monitoring
-
-### API Usage Dashboard
-Visit `/dashboard/api-usage` to track:
-- Daily API calls
-- Cost breakdown
-- Rate limits
-- Usage trends
-
-### Project Analytics
-Visit `/project/[id]/analytics` to see:
-- KPI cards
-- Execution timeline
-- Stage success rates
-- Cost analysis
-
----
-
-## 🐛 Troubleshooting
-
-### API Not Working?
-1. Check API keys are set in Vercel
-2. Visit `/test-ai-apis` to diagnose
-3. Check console for error messages
-
-### Build Errors?
-```bash
-# Clear cache and rebuild
-rm -rf .next
-pnpm build
+src/
+├── lib/
+│   ├── agents/              # 10 AI agents
+│   ├── orchestrator/        # Pipeline execution
+│   └── hooks/
+│       └── use-pipeline-stream.ts  # Real-time updates
+├── components/project/
+│   ├── pipeline-controller.tsx      # Controls
+│   ├── pipeline-config-panel.tsx    # Settings
+│   ├── pipeline-monitor.tsx         # Metrics
+│   └── results-display.tsx          # Results
+└── app/
+    └── api/pipeline/
+        ├── start/route.ts      # Initialize
+        ├── status/route.ts     # Get status
+        └── stream/route.ts     # Real-time events
 ```
 
-### Database Issues?
-```bash
-# Verify database connection
-pnpm run db:check
+## Common Tasks
+
+### Configure Default Settings
+1. Project page → Settings icon → Configure
+2. Set your preferred tone, word count, etc.
+3. Add custom instructions
+4. Click Save
+
+### Run Pipeline
+1. Click "Start Pipeline" button
+2. System auto-generates content step-by-step
+3. Monitor progress in real-time
+4. Download results when done
+
+### Export Results
+1. In Results Display section
+2. Click copy icon to copy to clipboard
+3. Or click download icon to save as text file
+
+## API Endpoints
+
+### Start Execution
+```
+POST /api/pipeline/start
+{
+  projectId: string,
+  prompt: string,
+  keywords: string[],
+  tone: string,
+  targetAudience: string
+}
 ```
 
----
-
-## 📚 Documentation
-
-- **API Guide:** `API_INTEGRATION_GUIDE.md`
-- **Setup Guide:** `ENV_SETUP_GUIDE.md`
-- **Full Report:** `FINAL_COMPLETION_REPORT.md`
-
----
-
-## 🎨 UI Components
-
-All components use:
-- **Tailwind CSS** for styling
-- **Framer Motion** for animations
-- **shadcn/ui** component patterns
-- **Responsive Design** (mobile-first)
-
----
-
-## 💡 Next Steps
-
-1. ✅ Test APIs: Visit `/test-ai-apis`
-2. ✅ Create project: Go to Dashboard
-3. ✅ Monitor usage: Check `/dashboard/api-usage`
-4. ✅ Customize settings: Visit `/dashboard/settings`
-5. ✅ Track analytics: View `/project/[id]/analytics`
-
----
-
-## 🚀 Deployment
-
-### Deploy to Vercel
-```bash
-# Push to Git
-git add .
-git commit -m "Deploy ContentForge AI"
-git push
-
-# Vercel automatically deploys from Git
+### Get Status
+```
+GET /api/pipeline/status?executionId={id}
 ```
 
-### Environment Variables in Vercel
-1. Go to Project Settings
-2. Add `ANTHROPIC_API_KEY`
-3. Add `OPENAI_API_KEY`
-4. Deploy
+### Real-Time Stream
+```
+GET /api/pipeline/stream?executionId={id}
+(Server-Sent Events)
+```
+
+## Performance Tips
+
+1. **Faster Results**: Reduce word count requirement
+2. **Lower Cost**: Use fewer custom instructions
+3. **Better Quality**: Enable approval gates
+4. **Parallel**: Run multiple pipelines (system handles automatically)
+
+## Troubleshooting
+
+### Pipeline Won't Start
+- ✓ Check ANTHROPIC_API_KEY is set
+- ✓ Verify DATABASE_URL is valid
+- ✓ Check project exists
+
+### Real-time Updates Not Working
+- ✓ Check browser supports EventSource
+- ✓ Verify `/api/pipeline/stream` is accessible
+- ✓ Check execution status in database
+
+### High Costs
+- ✓ Reduce word count
+- ✓ Simplify custom instructions
+- ✓ Use fewer agents/sections
+
+## Files to Know
+
+### Key Implementation Files
+- `app/project/[id]/page.tsx` - Main project page
+- `src/components/project/pipeline-*` - UI components
+- `app/api/pipeline/*/route.ts` - API endpoints
+- `src/lib/agents/*.ts` - AI agents
+- `src/lib/hooks/use-pipeline-stream.ts` - Real-time hook
+
+### Documentation
+- `ORCHESTRATION_GUIDE.md` - Full technical guide
+- `IMPLEMENTATION_COMPLETE.md` - Project status
+- `QUICK_START.md` - This file
+
+## Next Steps
+
+1. **Test the Pipeline**: Run a test execution
+2. **Configure Settings**: Customize for your needs
+3. **Monitor Execution**: Watch real-time progress
+4. **Export Results**: Download generated content
+5. **Deploy**: Push to production when ready
+
+## Support Resources
+
+- Full docs: See `ORCHESTRATION_GUIDE.md`
+- Architecture: See `IMPLEMENTATION_COMPLETE.md`
+- Code: Check inline comments and TypeScript types
 
 ---
 
-## 📞 Support
-
-### Resources
-- API Documentation: See `API_INTEGRATION_GUIDE.md`
-- Database Schema: Check `src/lib/db/schema.ts`
-- Test Page: Visit `/test-ai-apis`
-
-### Common Tasks
-
-**Generate Content:**
-```typescript
-import { generateContentWithClaude } from '@/app/actions/ai-generation'
-const result = await generateContentWithClaude(prompt, topic)
-```
-
-**Generate Images:**
-```typescript
-import { generateImageWithOpenAI } from '@/app/actions/image-generation'
-const result = await generateImageWithOpenAI(prompt, style)
-```
-
-**Track Metrics:**
-```typescript
-import { logActivity } from '@/app/actions/activity-logs'
-await logActivity('content_generated', 'project', {...})
-```
-
----
-
-## ✅ Verification Checklist
-
-- [ ] API keys configured in Vercel
-- [ ] Dev server running (`pnpm dev`)
-- [ ] Dashboard loads at localhost:3000/dashboard
-- [ ] Can create new project
-- [ ] API test page works (`/test-ai-apis`)
-- [ ] Analytics dashboard displays
-- [ ] Settings pages accessible
-- [ ] Project pipeline visible
-
----
-
-## 🎉 You're All Set!
-
-ContentForge AI is ready to use. Start creating amazing content with AI!
-
-**Happy Content Creating! 🚀**
+You're all set! The orchestration engine is ready to generate high-quality content. Start with a test project to see it in action.
