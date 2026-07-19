@@ -135,7 +135,9 @@ export class PipelineRunner {
     step.status = 'running'
     step.startedAt = new Date()
 
+    const contextData = this.context.getContext()
     console.log(`[v0] executeStep: Starting ${step.name} (${step.agentName})`)
+    console.log(`[v0] Context: prompt="${contextData.prompt}", keywords=[${contextData.keywords.join(', ')}], tone="${contextData.tone}"`)
 
     this.emitEvent({
       type: 'started',
@@ -183,13 +185,18 @@ export class PipelineRunner {
       }
     } catch (error) {
       step.status = 'failed'
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`[v0] executeStep failed: ${step.name} - ${errorMessage}`, error)
+      
       this.emitEvent({
         type: 'failed',
         stepName: step.name,
         timestamp: new Date(),
-        data: { error: error instanceof Error ? error.message : 'Unknown error' },
+        data: { error: errorMessage },
       })
-      throw error
+      
+      // Don't throw - allow pipeline to continue or handle gracefully
+      step.errors = [errorMessage]
     } finally {
       step.completedAt = new Date()
     }
