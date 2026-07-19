@@ -18,8 +18,8 @@ import { CreateDemoProject } from '@/components/dashboard/create-demo-project'
 
 const quickActions = [
   { icon: Sparkles, label: 'New Project', href: '/dashboard/projects/new' },
-  { icon: FileText, label: 'Create Article', href: '#' },
-  { icon: Zap, label: 'AI Tools', href: '#' },
+  { icon: FileText, label: 'My Projects', href: '/dashboard/projects' },
+  { icon: Zap, label: 'Pipeline Manager', href: '/dashboard/pipeline' },
   { icon: TrendingUp, label: 'Analytics', href: '#' },
 ]
 
@@ -85,9 +85,11 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {user && <CreateDemoProject userId={user.id} />}
-            <AnimatedButton variant="primary" size="lg" icon={<Sparkles className="h-5 w-5" />}>
-              Start New Project
-            </AnimatedButton>
+            <Link href="/dashboard/projects/new">
+              <AnimatedButton variant="primary" size="lg" icon={<Sparkles className="h-5 w-5" />}>
+                Start New Project
+              </AnimatedButton>
+            </Link>
           </div>
         </div>
 
