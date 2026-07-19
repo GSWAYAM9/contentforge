@@ -2,8 +2,20 @@ import { PipelineExecution, PipelineStep, PipelineEvent, AgentExecutionContext }
 import { ExecutionContext } from './context'
 import { withRetry } from './retry'
 import { KeywordAgent } from '../agents/keyword-agent'
+import { ResearchAgent } from '../agents/research-agent'
+import { OutlineAgent } from '../agents/outline-agent'
 import { WriterAgent } from '../agents/writer-agent'
+import { FactCheckAgent } from '../agents/fact-check-agent'
+import { EditorAgent } from '../agents/editor-agent'
 import { SEOAgent } from '../agents/seo-agent'
+import { InternalLinkingAgent } from '../agents/internal-linking-agent'
+import { AccessibilityAgent } from '../agents/accessibility-agent'
+import { SocialAgent } from '../agents/social-agent'
+import { EmailAgent } from '../agents/email-agent'
+import { LinkedInAgent } from '../agents/linkedin-agent'
+import { PublishAgent } from '../agents/publish-agent'
+import { QAAgent } from '../agents/qa-agent'
+import { LearningAgent } from '../agents/learning-agent'
 
 export type PipelineEventListener = (event: PipelineEvent) => void
 
@@ -20,10 +32,30 @@ export class PipelineRunner {
   }
 
   private initializeAgents(): void {
+    // Phase 1: Content Foundation
     this.agents.set('Keyword Research', new KeywordAgent())
-    this.agents.set('Writer', new WriterAgent())
+    this.agents.set('Research', new ResearchAgent())
+    this.agents.set('Outline', new OutlineAgent())
+    
+    // Phase 2: Content Creation & Refinement
+    this.agents.set('Content Writer', new WriterAgent())
+    this.agents.set('Fact Checker', new FactCheckAgent())
+    this.agents.set('Content Editor', new EditorAgent())
+    
+    // Phase 3: Technical Optimization
     this.agents.set('SEO', new SEOAgent())
-    // More agents will be added here
+    this.agents.set('Internal Linking', new InternalLinkingAgent())
+    this.agents.set('Accessibility', new AccessibilityAgent())
+    
+    // Phase 4: Distribution & Engagement
+    this.agents.set('Social', new SocialAgent())
+    this.agents.set('Email', new EmailAgent())
+    this.agents.set('LinkedIn', new LinkedInAgent())
+    
+    // Phase 5: Publishing & Learning
+    this.agents.set('QA', new QAAgent())
+    this.agents.set('Publish', new PublishAgent())
+    this.agents.set('Learning', new LearningAgent())
   }
 
   subscribe(listener: PipelineEventListener): void {
