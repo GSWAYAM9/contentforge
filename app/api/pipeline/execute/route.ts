@@ -79,6 +79,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing executionId' }, { status: 400 })
     }
 
+    // Lazy imports to avoid build issues
+    const { db } = await import('@/lib/db')
+    const { pipelineExecutions } = await import('@/lib/db/schema')
+    const { eq } = await import('drizzle-orm')
+
     // Get execution from database
     const result = await db
       .select()
@@ -87,10 +92,12 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (!result.length) {
+      console.error('[v0] Execution not found:', executionId)
       return NextResponse.json({ error: 'Execution not found' }, { status: 404 })
     }
 
     const execution = result[0].data as PipelineExecution
+    console.log('[v0] Starting pipeline execution:', executionId)
 
     // Run pipeline in the background
     runPipelineAsync(executionId, execution, session.user.id, execution.projectId).catch((error) => {

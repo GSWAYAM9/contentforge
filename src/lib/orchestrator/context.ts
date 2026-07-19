@@ -4,6 +4,17 @@ export class ExecutionContext {
   private context: AgentExecutionContext
 
   constructor(baseContext: Partial<AgentExecutionContext>) {
+    // Convert plain object to Map if needed
+    let previousOutputs: Map<string, any> = new Map()
+    if (baseContext.previousOutputs) {
+      if (baseContext.previousOutputs instanceof Map) {
+        previousOutputs = baseContext.previousOutputs
+      } else {
+        // Convert plain object to Map
+        previousOutputs = new Map(Object.entries(baseContext.previousOutputs as Record<string, any>))
+      }
+    }
+
     this.context = {
       projectId: baseContext.projectId || '',
       project: baseContext.project || {},
@@ -14,7 +25,7 @@ export class ExecutionContext {
       tone: baseContext.tone || 'professional',
       keywords: baseContext.keywords || [],
       research: baseContext.research || {},
-      previousOutputs: baseContext.previousOutputs || new Map(),
+      previousOutputs,
       memory: baseContext.memory || this.createEmptyMemory(),
       userSettings: baseContext.userSettings || {},
       language: baseContext.language || 'en',

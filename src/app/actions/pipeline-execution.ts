@@ -37,35 +37,51 @@ export async function executePipeline(input: ExecutePipelineInput) {
       throw new Error('Unauthorized: Project belongs to different user')
     }
 
-    // Create execution ID
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    console.log('[v0] executePipeline: Creating pipeline for project', projectId)
 
-    // Insert initial pipeline steps for tracking
-    const agents = [
-      'Keyword Research',
-      'Research & Analysis',
-      'Content Outlining',
-      'Article Writing',
-      'SEO Optimization',
-      'Social Media Content',
-      'Email Marketing Copy',
-      'LinkedIn Content',
-      'Quality Assurance',
-      'Image Generation'
-    ]
+    // Call the orchestration engine via API
+    const startResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/pipeline/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId: projectId.toString(),
+        prompt: input.topic || project[0].topic || 'Untitled Article',
+        keywords: input.keywords || [],
+        brandVoice: project[0].description || '',
+        targetAudience: project[0].description || '',
+        tone: input.tone || 'professional',
+      }),
+    })
 
-    for (const agent of agents) {
-      await db.insert(pipelineSteps).values({
-        projectId,
-        userId: session.id,
-        stepName: agent,
-        agent,
-        status: 'pending',
-        content: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
+    if (!startResponse.ok) {
+      const error = await startResponse.json()
+      throw new Error(`Failed to start pipeline: ${error.error}`)
     }
+
+    const startData = await startResponse.json()
+    const executionId = startData.executionId
+
+    console.log('[v0] executePipeline: Pipeline created with ID', executionId)
+
+    // Now trigger the execution
+    const executeResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/pipeline/execute`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        executionId,
+      }),
+    })
+
+    if (!executeResponse.ok) {
+      const error = await executeResponse.json()
+      throw new Error(`Failed to execute pipeline: ${error.error}`)
+    }
+
+    console.log('[v0] executePipeline: Pipeline execution triggered')
 
     // Return execution ID for SSE stream
     return {
