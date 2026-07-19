@@ -2,25 +2,25 @@ import { BaseAgent } from './base-agent'
 import { AgentExecutionContext } from '../types/ai'
 import { getPrompt } from '../prompts'
 
-export class OutlineAgent extends BaseAgent {
+export class FactCheckAgent extends BaseAgent {
   constructor() {
-    super('Content Strategist')
+    super('Fact Checker')
   }
 
   buildPrompt(context: AgentExecutionContext): string {
-    const basePrompt = getPrompt('outline')
-    const research = context.previousOutputs?.get('Research') || ''
+    const basePrompt = getPrompt('fact-check')
+    const article = context.previousOutputs?.get('Content Writer') || context.prompt
 
     return `${basePrompt}
+
+Article to verify:
+${article}
 
 Topic: ${context.prompt}
 Keywords: ${context.keywords.join(', ')}
 
-Research findings:
-${research}
-
 ${this.formatContext(context)}
 
-Create a detailed outline with clear sections, key points, estimated word counts, and strategic CTA placement.`
+Review the article for accuracy, verify claims, statistics, and dates. Provide detailed findings.`
   }
 }

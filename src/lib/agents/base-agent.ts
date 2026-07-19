@@ -1,6 +1,7 @@
 import { AgentOutput, AgentExecutionContext } from '../types/ai'
 import { callClaude, estimateCost } from '../services/anthropic'
 import { getPrompt, getSystemPrompt } from '../prompts'
+import { getGlobalTracker } from '../services/usage-tracking'
 
 export abstract class BaseAgent {
   protected agentName: string
@@ -36,6 +37,23 @@ export abstract class BaseAgent {
 
       const duration = Date.now() - startTime
       const cost = estimateCost(response.usage.promptTokens, response.usage.completionTokens)
+
+      // Track usage globally
+      const tracker = getGlobalTracker()
+      const executionId = context.projectId || 'unknown'
+      tracker.recordUsage({
+        executionId,
+        stepName: this.agentName,
+        agentName: this.agentName,
+        model: this.model,
+        promptTokens: response.usage.promptTokens,
+        completionTokens: response.usage.completionTokens,
+        totalTokens: response.usage.totalTokens,
+        timestamp: new Date(),
+        duration,
+      })
+
+      logs.push(`[${this.agentName}] Tracked usage: ${response.usage.totalTokens} tokens, $${cost.toFixed(4)}`)
 
       let output: any = response.text
 
