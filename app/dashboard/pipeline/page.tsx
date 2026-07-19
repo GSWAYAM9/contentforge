@@ -14,10 +14,15 @@ const pipelines = [
     status: 'running',
     progress: 60,
     currentStep: 'Image Generation',
-    totalSteps: 5,
-    completedSteps: 3,
+    currentAgent: 'OpenAI (DALL-E 3)',
+    agentModel: 'OpenAI',
+    totalSteps: 10,
+    completedSteps: 6,
     startedAt: new Date(Date.now() - 5 * 60000),
     estimatedTime: '2m 30s',
+    tokenUsage: 3421,
+    estimatedCost: 0.0145,
+    agents: ['Keyword Research', 'Research', 'Outline', 'Writer', 'SEO', 'Image Generation'],
   },
   {
     id: 2,
@@ -26,10 +31,15 @@ const pipelines = [
     status: 'completed',
     progress: 100,
     currentStep: 'Publishing',
-    totalSteps: 5,
-    completedSteps: 5,
+    currentAgent: 'Claude 3.5 Sonnet',
+    agentModel: 'Claude',
+    totalSteps: 10,
+    completedSteps: 10,
     completedAt: new Date(Date.now() - 15 * 60000),
     totalTime: '12m 45s',
+    tokenUsage: 8934,
+    estimatedCost: 0.0342,
+    agents: ['Keyword Research', 'Research', 'Outline', 'Writer', 'SEO', 'Social', 'Email', 'LinkedIn', 'QA', 'Publish'],
   },
   {
     id: 3,
@@ -38,9 +48,14 @@ const pipelines = [
     status: 'paused',
     progress: 40,
     currentStep: 'Content Review',
-    totalSteps: 5,
-    completedSteps: 2,
+    currentAgent: 'Claude 3.5 Sonnet',
+    agentModel: 'Claude',
+    totalSteps: 10,
+    completedSteps: 4,
     pausedAt: new Date(Date.now() - 3 * 60000),
+    tokenUsage: 4120,
+    estimatedCost: 0.0167,
+    agents: ['Keyword Research', 'Research', 'Outline', 'Writer'],
   },
   {
     id: 4,
@@ -49,9 +64,14 @@ const pipelines = [
     status: 'queued',
     progress: 0,
     currentStep: 'Waiting to start',
-    totalSteps: 5,
+    currentAgent: 'Claude 3.5 Sonnet',
+    agentModel: 'Claude',
+    totalSteps: 10,
     completedSteps: 0,
     queuedAt: new Date(Date.now() - 1 * 60000),
+    tokenUsage: 0,
+    estimatedCost: 0,
+    agents: ['Keyword Research', 'Research', 'Outline', 'Writer', 'SEO', 'Social', 'Email', 'LinkedIn', 'QA', 'Publish'],
   },
 ]
 
@@ -175,6 +195,40 @@ export default function PipelinePage() {
           </motion.div>
         </div>
 
+        {/* AI Models Legend */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <GlassCard className="p-4 backdrop-blur-xl bg-purple-600/10 border border-purple-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-purple-400" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Claude 3.5 Sonnet</p>
+                  <p className="text-xs text-muted-foreground">Anthropic - Text & Content Generation</p>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <GlassCard className="p-4 backdrop-blur-xl bg-blue-600/10 border border-blue-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-blue-400" />
+                <div>
+                  <p className="text-sm font-semibold text-white">OpenAI DALL-E 3</p>
+                  <p className="text-xs text-muted-foreground">OpenAI - Image Generation</p>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        </div>
+
         {/* Pipelines List */}
         <div className="space-y-4">
           {pipelines.map((pipeline, index) => (
@@ -263,11 +317,30 @@ export default function PipelinePage() {
                 </div>
 
                 {/* Details */}
-                <div className="flex flex-wrap gap-6 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm mb-4">
                   <div>
                     <span className="text-muted-foreground">Current Step:</span>
                     <p className="text-white font-medium">{pipeline.currentStep}</p>
                   </div>
+                  <div>
+                    <span className="text-muted-foreground">AI Model:</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className={`w-2 h-2 rounded-full ${pipeline.agentModel === 'Claude' ? 'bg-purple-400' : 'bg-blue-400'}`} />
+                      <p className="text-white font-medium text-xs">{pipeline.currentAgent}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Tokens Used:</span>
+                    <p className="text-white font-medium">{pipeline.tokenUsage.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Estimated Cost:</span>
+                    <p className="text-white font-medium">${pipeline.estimatedCost.toFixed(4)}</p>
+                  </div>
+                </div>
+
+                {/* Time Info */}
+                <div className="flex flex-wrap gap-6 text-sm mb-4">
                   {pipeline.status === 'running' && pipeline.estimatedTime && (
                     <div>
                       <span className="text-muted-foreground">Est. Time:</span>
@@ -280,6 +353,30 @@ export default function PipelinePage() {
                       <p className="text-white font-medium">{pipeline.totalTime}</p>
                     </div>
                   )}
+                </div>
+
+                {/* Agents Timeline */}
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">PIPELINE AGENTS</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pipeline.agents.map((agent, idx) => (
+                      <motion.div
+                        key={agent}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          idx < pipeline.completedSteps
+                            ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                            : idx === Math.floor(pipeline.completedSteps)
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 animate-pulse'
+                            : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                        }`}
+                      >
+                        {agent}
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               </GlassCard>
             </motion.div>
