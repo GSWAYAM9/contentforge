@@ -222,6 +222,28 @@ export const notifications = pgTable(
   })
 )
 
+export const pipelineExecutions = pgTable(
+  'pipeline_executions',
+  {
+    id: text('id').primaryKey(),
+    projectId: integer('projectId')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: text('userId').notNull(),
+    status: varchar('status', { length: 50 }).default('running'),
+    totalCost: integer('totalCost').default(0),
+    totalTokens: integer('totalTokens').default(0),
+    data: text('data'), // JSON stringified execution data
+    completedAt: timestamp('completedAt'),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdIdx: index('pipelineExecutions_projectId_idx').on(table.projectId),
+    userIdIdx: index('pipelineExecutions_userId_idx').on(table.userId),
+    statusIdx: index('pipelineExecutions_status_idx').on(table.status),
+  })
+)
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   accounts: many(accounts),
@@ -262,4 +284,8 @@ export const analyticsRelations = relations(analytics, ({ one }) => ({
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}))
+
+export const pipelineExecutionsRelations = relations(pipelineExecutions, ({ one }) => ({
+  project: one(projects, { fields: [pipelineExecutions.projectId], references: [projects.id] }),
 }))
