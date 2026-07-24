@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Download, Trash2, RotateCw, Maximize2, X, Loader2 } from 'lucide-react'
-import { generateImageWithOpenAI } from '@/app/actions/image-generation'
+import { generateImageWithOpenAI, saveGeneratedImage } from '@/app/actions/image-generation'
 
 interface GalleryImage {
   id: string
+  stepId?: number
   url: string
   alt: string
   prompt?: string
@@ -15,13 +16,14 @@ interface GalleryImage {
 
 interface ImageGalleryProps {
   images: GalleryImage[]
+  projectId?: string
   onRegenerate?: (id: string) => void
   onDelete?: (id: string) => void
   onDownload?: (id: string) => void
   onImagesUpdated?: () => void
 }
 
-export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload, onImagesUpdated }: ImageGalleryProps) {
+export function ImageGallery({ images = [], projectId, onRegenerate, onDelete, onDownload, onImagesUpdated }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -49,10 +51,13 @@ export function ImageGallery({ images = [], onRegenerate, onDelete, onDownload, 
     setIsRegenerating(true)
     try {
       const currentImg = images.find(img => img.id === id)
-      if (currentImg?.prompt) {
+      if (currentImg?.prompt && projectId && currentImg.stepId) {
         const result = await generateImageWithOpenAI(currentImg.prompt)
-        if (result.success) {
+        if (result.success && result.imageUrl) {
+          await saveGeneratedImage(Number(projectId), currentImg.stepId, result.imageUrl, currentImg.alt)
           onImagesUpdated?.()
+        } else {
+          console.error('Error regenerating image:', result.error)
         }
       } else if (onRegenerate) {
         onRegenerate(id)

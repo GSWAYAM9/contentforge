@@ -268,12 +268,27 @@ export default function ProjectPage() {
             </div>
           )}
           {activeTab === 'media' && (
-            <ImageGallery 
-              images={[
-                { id: '1', url: 'https://images.unsplash.com/photo-1677442d019cecf8d5b3c3b53b8c31c66c7c6e3b?w=800&h=600&fit=crop', alt: 'AI Generated Image 1', generated: true },
-                { id: '2', url: 'https://images.unsplash.com/photo-1655720828018-edd2daec9349?w=800&h=600&fit=crop', alt: 'AI Generated Image 2', generated: true },
-                { id: '3', url: 'https://images.unsplash.com/photo-1677565508464-f6c1e55a3d1e?w=800&h=600&fit=crop', alt: 'AI Generated Image 3', generated: true },
-              ]}
+            <ImageGallery
+              projectId={id}
+              onImagesUpdated={handleStepUpdated}
+              images={pipelineSteps
+                .map((step) => {
+                  try {
+                    const parsed = step.content ? JSON.parse(step.content) : null
+                    if (!parsed?.imageUrl) return null
+                    return {
+                      id: String(step.id),
+                      stepId: step.id,
+                      url: parsed.imageUrl,
+                      alt: parsed.imageName || step.stepName,
+                      prompt: parsed.prompt,
+                      generated: true,
+                    }
+                  } catch {
+                    return null
+                  }
+                })
+                .filter((img): img is NonNullable<typeof img> => img !== null)}
             />
           )}
           {activeTab === 'settings' && (

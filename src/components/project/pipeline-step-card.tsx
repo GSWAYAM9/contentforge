@@ -5,7 +5,7 @@ import { ChevronDown, Zap, RotateCw, Eye, Clock, Play, CheckCircle2, XCircle, Sp
 import { useState } from 'react'
 import { runPipelineStep, requestApproval } from '@/app/actions/project-operations'
 import { generateContentWithClaude } from '@/app/actions/ai-generation'
-import { generateImageWithOpenAI } from '@/app/actions/image-generation'
+import { generateImageWithOpenAI, saveGeneratedImage } from '@/app/actions/image-generation'
 
 interface Stage {
   id: number
@@ -92,11 +92,15 @@ export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onSte
   }
 
   const handleGenerateImage = async () => {
+    if (!projectId) return
     setIsLoading(true)
     try {
       const result = await generateImageWithOpenAI(`Professional image for ${stage.name}`)
-      if (result.success) {
+      if (result.success && result.imageUrl) {
+        await saveGeneratedImage(Number(projectId), stage.id, result.imageUrl, `${stage.name} image`)
         onStepUpdated?.()
+      } else {
+        console.error('Error generating image:', result.error)
       }
     } catch (error) {
       console.error('Error generating image:', error)
@@ -277,6 +281,18 @@ export function PipelineStepCard({ stage, isExpanded, onExpand, projectId, onSte
                       className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
                     />
                   </div>
+                </div>
+              )}
+
+              {/* Generated Image */}
+              {parsedContent.imageUrl && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Generated Image</h4>
+                  <img
+                    src={parsedContent.imageUrl}
+                    alt={parsedContent.imageName || stage.name}
+                    className="w-full max-w-md rounded-lg border border-white/10"
+                  />
                 </div>
               )}
 
